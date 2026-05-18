@@ -60,3 +60,34 @@ The experiment-bridge skill requests a secondary reviewer when available. The ac
 - Scope control: PASS. The script implements the teacher-review P0/P1 blocks only: protocol audit, temporal drift, selective tradeoffs, manual-review stress, and cost/profit consolidation. It does not add new datasets or production-bank claims.
 - Parseable outputs: PASS. Every analysis table is written as CSV, with Markdown summaries and fixed/latest output paths for dissertation handoff.
 - Claim control: PASS. The generated summary explicitly keeps C1 as a bounded temporal-setting claim, C3 as the strongest cost-threshold claim, and C4 as review-heavy risk-control evidence.
+
+## Reject-Option Capacity Protocol Review
+
+Date: 2026-05-19
+
+Mode: `[local-only]`
+
+The new experiment plan requires a cleaner empirical protocol: full-row model training, non-overlapping chronological partitions, pre-test calibrator selection, and a cost/capacity decision layer. Reviewer delegation was not used because the active tool policy only permits sub-agents when the user explicitly asks for sub-agent or parallel agent work, so I applied the experiment-bridge checklist locally.
+
+### Scope Reviewed
+
+- `dcred/splits.py`: seven-way chronological role split.
+- `dcred/reject_option.py`: no-review, all-review, cost-aware reject option, top-B capacity deferral, and savings calculations.
+- `dcred/experiment.py`: `run_reject_option_capacity`, calibration selection, final-test gate outputs, capacity frontier reporting, and empirical risk-control baseline.
+- `dcred/cli.py`: `run-reject-capacity` command and primary scenario arguments.
+- `scripts/run_reject_capacity_sanity.ps1`: small sanity-stage launch command.
+
+### Blocking Checks
+
+- Ground-truth evaluation: PASS. Calibration metrics, policy rates, realized costs, conformal coverage, and deferred-cohort diagnostics compare against Lending Club labels. Capacity ranking itself uses only calibrated probabilities and cost assumptions.
+- Role separation: PASS. `model_train`, `model_dev`, `calibration_fit`, `calibration_select`, `policy_tune`, `risk_calibration`, and `final_test` are non-overlapping chronological partitions.
+- Calibration selection: PASS. The primary calibrated source is selected only on `calibration_select` using Brier with ECE/NLL tie-breaks.
+- Final-test tuning leakage: PASS. Final-test outputs are generated after model/calibrator/scenario/capacity settings are fixed and an access log is written.
+- No capped main evidence: PASS for `outputs/reject_capacity_full`; LR, LightGBM, and XGBoost were run without `--tree-max-train-rows`.
+- Parseable outputs: PASS. Split summaries, calibration metrics, policy grids, capacity frontier, selected probabilities, JSON summary, and Markdown results are written under `outputs/reject_capacity_full`.
+
+### Non-Blocking Notes
+
+- Venn-Abers is not a formal implementation in this patch. The output `venn_abers_interval_fallback_summary.csv` is explicitly labelled as an empirical binomial interval fallback and must not be claimed as a formal Venn-Abers guarantee.
+- The conformal risk-control variant is empirical. The generated report keeps it as a baseline/risk diagnostic and does not claim finite-sample control.
+- XGBoost CUDA completed, but prediction emitted the known device-mismatch warning and fell back to DMatrix prediction. This affects prediction path efficiency, not the label-based evaluation logic.

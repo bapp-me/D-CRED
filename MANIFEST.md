@@ -35,3 +35,13 @@
 | 2026-05-19 00:32 | /experiment-plan | refine-logs/REJECT_OPTION_CAPACITY_EXPERIMENT_PLAN.md | implementation | latest full-data reject-option and capacity-aware D-CRED experiment plan |
 | 2026-05-19 00:32 | /experiment-plan | refine-logs/REJECT_OPTION_CAPACITY_EXPERIMENT_TRACKER_20260519_003218.md | implementation | timestamped tracker for reject-option and capacity-aware D-CRED rerun |
 | 2026-05-19 00:32 | /experiment-plan | refine-logs/REJECT_OPTION_CAPACITY_EXPERIMENT_TRACKER.md | implementation | latest tracker for reject-option and capacity-aware D-CRED rerun |
+| 2026-05-19 00:54 | /experiment-bridge | outputs/reject_capacity_sanity | reject-capacity | sanity-stage 10k-row role-split reject-option/capacity run |
+| 2026-05-19 00:54 | /experiment-bridge | outputs/reject_capacity_lr_full | reject-capacity | full-row no-cap LR role-split reject-option/capacity run |
+| 2026-05-19 00:54 | /experiment-bridge | outputs/reject_capacity_lgbm_full | reject-capacity | full-row no-cap LightGBM role-split reject-option/capacity run |
+| 2026-05-19 00:54 | /experiment-bridge | outputs/reject_capacity_xgb_full | reject-capacity | full-row no-cap XGBoost CUDA role-split reject-option/capacity run |
+| 2026-05-19 00:54 | /experiment-bridge | outputs/reject_capacity_full | reject-capacity | combined full-row no-cap LR/LightGBM/XGBoost run with calibration-select primary source and capacity frontier |
+| 2026-05-19 00:57 | /experiment-bridge | refine-logs/REJECT_OPTION_CAPACITY_EXPERIMENT_RESULTS_20260519_005742.md | reject-capacity | timestamped result summary for combined full-row reject-option/capacity run |
+| 2026-05-19 00:57 | /experiment-bridge | refine-logs/REJECT_OPTION_CAPACITY_EXPERIMENT_RESULTS.md | reject-capacity | latest result summary for combined full-row reject-option/capacity run |
+| 2026-05-19 00:57 | /experiment-bridge | refine-logs/REJECT_OPTION_CAPACITY_EXPERIMENT_TRACKER_20260519_005742.md | reject-capacity | timestamped tracker after combined full-row reject-option/capacity run |
+| 2026-05-19 00:57 | /experiment-bridge | refine-logs/REJECT_OPTION_CAPACITY_EXPERIMENT_TRACKER.md | reject-capacity | latest tracker after combined full-row reject-option/capacity run |
+| 2026-05-19 00:57 | /experiment-bridge | refine-logs/EXPERIMENT_CODE_REVIEW.md | code-review | local-only checklist for role-split reject-option/capacity implementation |

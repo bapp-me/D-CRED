@@ -5,7 +5,7 @@ from pathlib import Path
 
 from .config import OUTPUT_DIR, RAW_DATA_DIR
 from .data import ensure_german_credit, ensure_lending_club, ensure_uci_default
-from .experiment import RunConfig, run_all, run_lending, run_reduced
+from .experiment import RunConfig, run_all, run_lending, run_reduced, run_reject_option_capacity
 from .utils import ensure_dir, now_stamp, write_json
 
 
@@ -38,6 +38,17 @@ def main() -> None:
     _add_model_args(all_parser)
     all_parser.add_argument("--lending-max-rows", type=int, default=None)
     all_parser.add_argument("--reduced-seeds", nargs="+", type=int, default=[42, 43, 44])
+
+    reject_capacity = subparsers.add_parser(
+        "run-reject-capacity",
+        help="Run the chronological role-split reject-option and capacity-aware protocol.",
+    )
+    _add_common_args(reject_capacity)
+    _add_model_args(reject_capacity)
+    reject_capacity.add_argument("--lending-max-rows", type=int, default=None)
+    reject_capacity.add_argument("--primary-cost-ratio", type=float, default=5.0)
+    reject_capacity.add_argument("--primary-review-cost", type=float, default=0.10)
+    reject_capacity.add_argument("--primary-human-residual-rho", type=float, default=0.10)
 
     args = parser.parse_args()
 
@@ -97,6 +108,13 @@ def main() -> None:
         run_reduced(config)
     elif args.command == "run-all":
         run_all(config)
+    elif args.command == "run-reject-capacity":
+        run_reject_option_capacity(
+            config,
+            primary_cost_ratio=args.primary_cost_ratio,
+            primary_review_cost=args.primary_review_cost,
+            primary_human_residual_rho=args.primary_human_residual_rho,
+        )
     else:
         raise ValueError(args.command)
 
