@@ -16,3 +16,10 @@
 | 2026-05-04 01:08 | /result-to-claim | CLAIMS_FROM_RESULTS.md | claim-control | supported and unsupported D-CRED claims after review |
 | 2026-05-04 01:08 | /result-to-claim | CLAIMS_FROM_RESULTS_20260504_010800.md | claim-control | timestamped D-CRED claim summary |
 | 2026-05-04 01:08 | /result-to-claim | findings.md | claim-control | D-CRED findings and limitations for dissertation writing |
+| 2026-05-18 21:45 | /experiment-plan | refine-logs/TEACHER_REVIEW_EXPERIMENT_PLAN_20260518_214547.md | implementation | timestamped P0/P1 supervisor-review reinforcement experiment plan |
+| 2026-05-18 21:45 | /experiment-plan | refine-logs/TEACHER_REVIEW_EXPERIMENT_PLAN.md | implementation | latest P0/P1 supervisor-review reinforcement experiment plan |
+| 2026-05-18 21:45 | /experiment-plan | refine-logs/TEACHER_REVIEW_EXPERIMENT_TRACKER_20260518_214547.md | implementation | timestamped run tracker for P0/P1 supervisor-review reinforcement work |
+| 2026-05-18 21:45 | /experiment-plan | refine-logs/TEACHER_REVIEW_EXPERIMENT_TRACKER.md | implementation | latest run tracker for P0/P1 supervisor-review reinforcement work |
+| 2026-05-18 22:07 | /experiment-bridge | outputs/teacher_review_p1_20260518_220742 | teacher-review-p1 | timestamped P0/P1 supervisor-review reinforcement analysis outputs |
+| 2026-05-18 22:07 | /experiment-bridge | outputs/teacher_review_p1_latest | teacher-review-p1 | latest fixed-name P0/P1 reinforcement analysis outputs |
+| 2026-05-18 22:07 | /experiment-bridge | refine-logs/TEACHER_REVIEW_EXPERIMENT_RESULTS.md | teacher-review-p1 | latest P0/P1 experiment result summary |

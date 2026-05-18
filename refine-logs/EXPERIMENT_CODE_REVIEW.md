@@ -44,3 +44,19 @@ The experiment-bridge skill requests a secondary Codex reviewer when available. 
 - Text fields are excluded from the default tabular benchmark and documented in the feature audit. The CLI supports `--include-text` for a text-augmented variant.
 - Full Lending Club XGBoost with sparse one-hot features may exceed 8GB GPU memory. The implementation tries CUDA when `--use-gpu-xgb` is set and falls back to CPU XGBoost if the GPU build or memory path fails.
 - The full run can be time-consuming; `outputs/sanity/` confirms the complete pipeline works before deployment.
+
+## Teacher Review P0/P1 Supplement Review
+
+Date: 2026-05-18
+
+Mode: `[local-only]`
+
+The experiment-bridge skill requests a secondary reviewer when available. The active tool policy still permits sub-agents only when explicitly requested, so I applied the review checklist locally for `scripts/teacher_review_p1_analysis.py` before the full P1 run.
+
+### Blocking Checks
+
+- Ground-truth evaluation: PASS. The new drift and sensitivity analyses use `bundle.target`, existing result CSV labels/metrics, or recomputed temporal test labels; they do not compare against another model's output as ground truth.
+- No test-set tuning: PASS. The recomputed selective diagnostics choose calibration and robust thresholds from validation records, then report on test records.
+- Scope control: PASS. The script implements the teacher-review P0/P1 blocks only: protocol audit, temporal drift, selective tradeoffs, manual-review stress, and cost/profit consolidation. It does not add new datasets or production-bank claims.
+- Parseable outputs: PASS. Every analysis table is written as CSV, with Markdown summaries and fixed/latest output paths for dissertation handoff.
+- Claim control: PASS. The generated summary explicitly keeps C1 as a bounded temporal-setting claim, C3 as the strongest cost-threshold claim, and C4 as review-heavy risk-control evidence.
