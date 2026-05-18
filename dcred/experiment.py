@@ -19,8 +19,13 @@ from .data import (
     load_uci_default,
     summarize_splits,
 )
-from .decision import cost_metrics, decision_table, robust_cost_threshold
-from .metrics import bootstrap_ci, classification_metrics, metrics_row
+from .decision import cost_metrics, cost_threshold, cost_values, decision_table, robust_cost_threshold
+from .metrics import (
+    bootstrap_ci,
+    classification_metrics,
+    metrics_row,
+    paired_bootstrap_delta_ci,
+)
 from .modeling import (
     build_models,
     build_preprocessor,
@@ -29,7 +34,7 @@ from .modeling import (
     predict_default_proba,
 )
 from .reporting import default_rate_by_period, reliability_plot
-from .selective import selective_table
+from .selective import conformal_quantile, selective_table, split_conformal_review_mask
 from .splits import stratified_60_20_20, temporal_60_20_20
 from .utils import describe_command, ensure_dir, log, now_stamp, set_seed, write_json, write_text
 
@@ -195,6 +200,7 @@ def run_lending(config: RunConfig) -> dict[str, object]:
         )
 
     _write_bootstrap(output_dir, best_records, config.bootstrap, config.seed)
+    _write_decision_delta_bootstrap(output_dir, best_records, config.bootstrap, config.seed)
     _write_reliability(figures_dir, best_records)
 
     summary = {
@@ -313,7 +319,37 @@ def run_reduced(config: RunConfig) -> dict[str, object]:
 
 def run_all(config: RunConfig) -> dict[str, object]:
     lending = run_lending(config)
-    reduced_config = RunConfig(**{**config.__dict__, "output_dir": config.output_dir})
+    reduced_output_dir = config.output_dir.with_name(f"{config.output_dir.name}_reduced")
+    reduced_config = RunConfig(
+        **{
+            **config.__dict__,
+            "output_dir": reduced_output_dir,
+            "bootstrap": 0,
+            "use_gpu_xgb": False,
+        }
+    )
+    write_json(
+        reduced_output_dir / "run_config.json",
+        {
+            "command": "run-reduced",
+            "config": {
+                "output_dir": str(reduced_config.output_dir),
+                "raw_dir": str(reduced_config.raw_dir),
+                "seed": reduced_config.seed,
+                "models": reduced_config.models,
+                "n_jobs": reduced_config.n_jobs,
+                "rf_estimators": reduced_config.rf_estimators,
+                "xgb_estimators": reduced_config.xgb_estimators,
+                "use_gpu_xgb": reduced_config.use_gpu_xgb,
+                "include_text": reduced_config.include_text,
+                "text_max_features": reduced_config.text_max_features,
+                "bootstrap": reduced_config.bootstrap,
+                "lending_max_rows": reduced_config.lending_max_rows,
+                "tree_max_train_rows": reduced_config.tree_max_train_rows,
+                "reduced_seeds": list(reduced_config.reduced_seeds),
+            },
+        },
+    )
     reduced = run_reduced(reduced_config)
     summary = {"lending": lending, "reduced": reduced}
     write_json(config.output_dir / "run_all_summary.json", summary)
@@ -481,6 +517,95 @@ def _write_bootstrap(
     pd.DataFrame(rows).to_csv(output_dir / "bootstrap_ci.csv", index=False)
 
 
+def _write_decision_delta_bootstrap(
+    output_dir: Path,
+    records: list[PredictionRecord],
+    n_bootstrap: int,
+    seed: int,
+) -> None:
+    if n_bootstrap <= 0:
+        return
+    rows = []
+    for record in records:
+        idx = _bootstrap_subset_indices(len(record.y_test), max_rows=50_000)
+        y_test = record.y_test[idx]
+        probs_test = record.probs_test[idx]
+
+        fixed_costs = cost_values(y_test, probs_test, 0.5, false_negative_cost=5.0)
+        cost5_threshold = cost_threshold(5.0)
+        cost5_costs = cost_values(
+            y_test,
+            probs_test,
+            cost5_threshold,
+            false_negative_cost=5.0,
+        )
+        robust_threshold = robust_cost_threshold(
+            record.y_val,
+            record.probs_val,
+            DEFAULT_COST_RATIOS,
+        )
+        robust_costs = cost_values(
+            y_test,
+            probs_test,
+            robust_threshold,
+            false_negative_cost=5.0,
+        )
+
+        q_hat = conformal_quantile(record.y_val, record.probs_val, alpha=0.10)
+        full_review_mask, _, _ = split_conformal_review_mask(
+            record.probs_test,
+            q_hat,
+            robust_threshold,
+        )
+        review_mask = full_review_mask[idx]
+        conformal_costs = cost_values(
+            y_test,
+            probs_test,
+            robust_threshold,
+            false_negative_cost=5.0,
+            review_mask=review_mask,
+            review_cost=0.10,
+        )
+
+        comparisons = [
+            ("cost_5_to_1_minus_fixed_0.5", fixed_costs, cost5_costs, cost5_threshold),
+            (
+                "split_conformal_alpha_0.10_review_0.10_minus_robust_cost",
+                robust_costs,
+                conformal_costs,
+                robust_threshold,
+            ),
+            (
+                "split_conformal_alpha_0.10_review_0.10_minus_cost_5_to_1",
+                cost5_costs,
+                conformal_costs,
+                robust_threshold,
+            ),
+        ]
+        for metric_name, baseline, candidate, threshold in comparisons:
+            row = paired_bootstrap_delta_ci(
+                baseline,
+                candidate,
+                metric_name,
+                n_bootstrap=n_bootstrap,
+                seed=seed,
+            )
+            row.update(
+                {
+                    "dataset": record.dataset,
+                    "split": record.split,
+                    "model": record.model,
+                    "calibration": record.calibration,
+                    "n_bootstrap": n_bootstrap,
+                    "rows": len(y_test),
+                    "threshold": threshold,
+                    "delta_direction": "candidate_minus_baseline; negative means lower expected cost",
+                }
+            )
+            rows.append(row)
+    pd.DataFrame(rows).to_csv(output_dir / "decision_delta_ci.csv", index=False)
+
+
 def _bootstrap_subset(
     y_test: np.ndarray,
     probs_test: np.ndarray,
@@ -488,10 +613,17 @@ def _bootstrap_subset(
 ) -> tuple[np.ndarray, np.ndarray]:
     if len(y_test) <= max_rows:
         return y_test, probs_test
-    rng = np.random.default_rng(1)
-    idx = rng.choice(len(y_test), size=max_rows, replace=False)
-    idx.sort()
+    idx = _bootstrap_subset_indices(len(y_test), max_rows)
     return y_test[idx], probs_test[idx]
+
+
+def _bootstrap_subset_indices(n_rows: int, max_rows: int) -> np.ndarray:
+    if n_rows <= max_rows:
+        return np.arange(n_rows)
+    rng = np.random.default_rng(1)
+    idx = rng.choice(n_rows, size=max_rows, replace=False)
+    idx.sort()
+    return idx
 
 
 def _write_reliability(figures_dir: Path, records: list[PredictionRecord]) -> None:

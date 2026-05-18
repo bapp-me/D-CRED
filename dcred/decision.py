@@ -26,10 +26,15 @@ def cost_metrics(
     approve = (~reject) & auto
     auto_reject = reject & auto
 
-    costs = np.zeros_like(probs, dtype=float)
-    costs[approve & (y_true == 1)] = false_negative_cost
-    costs[auto_reject & (y_true == 0)] = false_positive_cost
-    costs[review_mask] = review_cost
+    costs = cost_values(
+        y_true,
+        probs,
+        threshold,
+        false_negative_cost=false_negative_cost,
+        false_positive_cost=false_positive_cost,
+        review_mask=review_mask,
+        review_cost=review_cost,
+    )
 
     approved_count = int(np.sum(approve))
     rejected_count = int(np.sum(auto_reject))
@@ -47,6 +52,35 @@ def cost_metrics(
         "n_rejected": rejected_count,
         "n_reviewed": reviewed_count,
     }
+
+
+def cost_values(
+    y_true: np.ndarray,
+    probs: np.ndarray,
+    threshold: float,
+    false_negative_cost: float,
+    false_positive_cost: float = 1.0,
+    review_mask: np.ndarray | None = None,
+    review_cost: float = 0.0,
+) -> np.ndarray:
+    y_true = np.asarray(y_true, dtype=int)
+    probs = clip_probs(probs)
+    reject = probs >= threshold
+    if review_mask is None:
+        review_mask = np.zeros_like(y_true, dtype=bool)
+    else:
+        review_mask = np.asarray(review_mask, dtype=bool)
+    auto = ~review_mask
+    approve = (~reject) & auto
+    auto_reject = reject & auto
+
+    costs = np.zeros_like(probs, dtype=float)
+    costs[approve & (y_true == 1)] = false_negative_cost
+    costs[auto_reject & (y_true == 0)] = false_positive_cost
+    # Reviewed cases are modeled as paying review cost only; residual manual-review
+    # error is an explicit reporting limitation, not estimated here.
+    costs[review_mask] = review_cost
+    return costs
 
 
 def profit_metrics(

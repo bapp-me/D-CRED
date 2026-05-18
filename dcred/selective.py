@@ -26,6 +26,21 @@ def conformal_sets(probs: np.ndarray, q_hat: float) -> tuple[np.ndarray, np.ndar
     return include_non_default, include_default
 
 
+def split_conformal_review_mask(
+    probs: np.ndarray,
+    q_hat: float,
+    threshold: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    include_non_default, include_default = conformal_sets(probs, q_hat)
+    valid = include_non_default | include_default
+    review_mask = (~valid) | (include_non_default & include_default)
+    auto_approve = include_non_default & (~include_default) & (probs < threshold)
+    auto_reject = include_default & (~include_non_default)
+    review_mask = review_mask | (include_non_default & (~include_default) & ~auto_approve)
+    review_mask = review_mask | (include_default & (~include_non_default) & ~auto_reject)
+    return review_mask, include_non_default, include_default
+
+
 def selective_table(
     dataset: str,
     split: str,
@@ -38,6 +53,7 @@ def selective_table(
     threshold: float,
     alphas: tuple[float, ...],
     false_negative_cost: float,
+    false_positive_cost: float = 1.0,
     review_cost_multipliers: tuple[float, ...] = (0.05, 0.10, 0.20),
     uncertainty_bands: tuple[float, ...] = (0.02, 0.05, 0.10),
 ) -> pd.DataFrame:
@@ -65,7 +81,7 @@ def selective_table(
                     threshold,
                     false_negative_cost=false_negative_cost,
                     review_mask=review_mask,
-                    review_cost=mult * false_negative_cost,
+                    review_cost=mult * false_positive_cost,
                 )
             )
             row["coverage"] = np.nan
@@ -73,13 +89,9 @@ def selective_table(
 
     for alpha in alphas:
         q_hat = conformal_quantile(y_cal, probs_cal, alpha)
-        include_non_default, include_default = conformal_sets(probs_test, q_hat)
-        valid = include_non_default | include_default
-        review_mask = (~valid) | (include_non_default & include_default)
-        auto_approve = include_non_default & (~include_default) & (probs_test < threshold)
-        auto_reject = include_default & (~include_non_default)
-        review_mask = review_mask | (include_non_default & (~include_default) & ~auto_approve)
-        review_mask = review_mask | (include_default & (~include_non_default) & ~auto_reject)
+        review_mask, include_non_default, include_default = split_conformal_review_mask(
+            probs_test, q_hat, threshold
+        )
         true_in_set = ((y_test == 0) & include_non_default) | ((y_test == 1) & include_default)
         for mult in review_cost_multipliers:
             row = {
@@ -101,7 +113,7 @@ def selective_table(
                     threshold,
                     false_negative_cost=false_negative_cost,
                     review_mask=review_mask,
-                    review_cost=mult * false_negative_cost,
+                    review_cost=mult * false_positive_cost,
                 )
             )
             rows.append(row)

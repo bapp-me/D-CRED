@@ -130,6 +130,42 @@ def bootstrap_ci(
     }
 
 
+def paired_bootstrap_delta_ci(
+    baseline_values: np.ndarray,
+    candidate_values: np.ndarray,
+    metric_name: str,
+    n_bootstrap: int,
+    seed: int,
+) -> dict[str, float | str]:
+    rng = np.random.default_rng(seed)
+    baseline_values = np.asarray(baseline_values, dtype=float)
+    candidate_values = np.asarray(candidate_values, dtype=float)
+    if len(baseline_values) != len(candidate_values):
+        raise ValueError("baseline_values and candidate_values must have the same length.")
+
+    deltas = []
+    n = len(baseline_values)
+    for _ in range(n_bootstrap):
+        idx = rng.integers(0, n, size=n)
+        value = float(np.mean(candidate_values[idx] - baseline_values[idx]))
+        if np.isfinite(value):
+            deltas.append(value)
+    if not deltas:
+        return {
+            "metric": metric_name,
+            "delta_mean": float("nan"),
+            "ci_low": float("nan"),
+            "ci_high": float("nan"),
+        }
+    arr = np.asarray(deltas)
+    return {
+        "metric": metric_name,
+        "delta_mean": float(np.mean(arr)),
+        "ci_low": float(np.quantile(arr, 0.025)),
+        "ci_high": float(np.quantile(arr, 0.975)),
+    }
+
+
 def write_metric_table(path, rows: list[dict[str, object]]) -> pd.DataFrame:
     frame = pd.DataFrame(rows)
     frame.to_csv(path, index=False)

@@ -1,0 +1,10 @@
+metric,delta_mean,ci_low,ci_high,dataset,split,model,calibration,n_bootstrap,rows,threshold,delta_direction
+cost_5_to_1_minus_fixed_0.5,-0.406294,-0.425487,-0.38819,lending_club,temporal,lr,isotonic,200,50000,0.1666666666666666,candidate_minus_baseline; negative means lower expected cost
+split_conformal_alpha_0.10_review_0.10_minus_robust_cost,-0.6031670700000001,-0.6066220000000001,-0.5996393000000003,lending_club,temporal,lr,isotonic,200,50000,0.09,candidate_minus_baseline; negative means lower expected cost
+split_conformal_alpha_0.10_review_0.10_minus_cost_5_to_1,-0.5384991700000001,-0.5466105000000001,-0.5304243500000001,lending_club,temporal,lr,isotonic,200,50000,0.09,candidate_minus_baseline; negative means lower expected cost
+cost_5_to_1_minus_fixed_0.5,-0.4112692,-0.4285825,-0.389972,lending_club,temporal,rf,isotonic,200,50000,0.1666666666666666,candidate_minus_baseline; negative means lower expected cost
+split_conformal_alpha_0.10_review_0.10_minus_robust_cost,-0.6159832500000002,-0.6191900000000001,-0.6124399500000002,lending_club,temporal,rf,isotonic,200,50000,0.09,candidate_minus_baseline; negative means lower expected cost
+split_conformal_alpha_0.10_review_0.10_minus_cost_5_to_1,-0.5527470500000001,-0.5602773000000001,-0.5459785500000003,lending_club,temporal,rf,isotonic,200,50000,0.09,candidate_minus_baseline; negative means lower expected cost
+cost_5_to_1_minus_fixed_0.5,-0.417509,-0.4340825,-0.399436,lending_club,temporal,xgb,isotonic,200,50000,0.1666666666666666,candidate_minus_baseline; negative means lower expected cost
+split_conformal_alpha_0.10_review_0.10_minus_robust_cost,-0.6053093600000001,-0.6085927500000001,-0.6013818000000002,lending_club,temporal,xgb,isotonic,200,50000,0.09,candidate_minus_baseline; negative means lower expected cost
+split_conformal_alpha_0.10_review_0.10_minus_cost_5_to_1,-0.5421696600000001,-0.5505693500000001,-0.5339430500000002,lending_club,temporal,xgb,isotonic,200,50000,0.09,candidate_minus_baseline; negative means lower expected cost
