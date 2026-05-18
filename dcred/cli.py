@@ -12,7 +12,7 @@ from .utils import ensure_dir, now_stamp, write_json
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="dcred",
-        description="D-CRED deployment-ready credit-risk experiments.",
+        description="D-CRED deployment-oriented credit-risk experiments.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

@@ -214,3 +214,186 @@ The final decision layer includes conservative selective decisioning through unc
 ## Final Summary
 
 The loop stopped after Round 2 because the external reviewer judged the MSc dissertation results chapter READY with limitations. Remaining top-venue blockers are documented as limitations rather than immediate loop fixes: validation reuse, 50k tree fit cap, LightGBM-RF surrogate, deterministic 50k bootstrap subset, only three reduced-protocol seeds, and no separate conformal holdout.
+
+---
+
+# Hard Auto Review Loop: Teacher Review P0/P1 Supplement
+
+**Started**: 2026-05-18T22:36:55+08:00
+**Topic**: D-CRED teacher-review P0/P1 experiment supplement
+**Mode**: Codex reviewer, hard difficulty, human checkpoint enabled
+**Reviewer agent**: `019e3b7e-a214-7e20-a5f8-558ca25a59dd`
+
+## Context Sources
+
+- `refine-logs/TEACHER_REVIEW_EXPERIMENT_PLAN.md`
+- `refine-logs/TEACHER_REVIEW_EXPERIMENT_RESULTS.md`
+- `refine-logs/TEACHER_REVIEW_EXPERIMENT_TRACKER.md`
+- `outputs/teacher_review_p1_latest/`
+- `scripts/teacher_review_p1_analysis.py`
+- `CLAIMS_FROM_RESULTS.md`
+- `review-stage/AUTO_REVIEW.md`
+- `refine-logs/EXPERIMENT_CODE_REVIEW.md`
+- `outputs/review_round1_fix/decision_results.csv`
+- `outputs/review_round1_fix/selective_results.csv`
+- `outputs/review_round1_fix/decision_delta_ci.csv`
+
+## Round 1 (2026-05-18T22:36:55+08:00)
+
+### Assessment (Summary)
+
+- Score: 4/10 top venue; 8/10 MSc dissertation.
+- Verdict: almost ready for integrating the teacher-review P0/P1 supplement.
+- Key criticisms:
+  - P0 claim-control audit is keyword screening, not a defensible source-specific audit.
+  - `CLAIMS_FROM_RESULTS.md` is stale after the 2026-05-18 supplement.
+  - Split conformal is cost-dominated by all-review at review multiplier 0.10 under perfect-review assumptions.
+  - Manual-review residual-error sensitivity is a valid stylized stress test, but only against automated threshold baselines unless all-review residual-error rows are added.
+  - Temporal evidence supports upward default prevalence and modest feature movement, not causal drift or strong covariate shift.
+
+### Reviewer Raw Response
+
+<details>
+<summary>Click to expand full reviewer response</summary>
+
+**Score And Verdict**
+Top-venue score: **4/10**. MSc-dissertation score: **8/10**.
+
+Verdict: **almost ready** for integrating the teacher-review P0/P1 supplement. The P1 analyses are real and mostly useful; the P0 claim-control gate is too shallow to trust as a pass, and the selective-decisioning cost story needs one stronger caveat before writing.
+
+**Ranked Findings**
+P0: The P0 audit is not a defensible claim audit. It concatenates mixed sources and passes broad keyword checks, so a stale or unsafe paragraph could be masked by safe wording elsewhere: [teacher_review_p1_analysis.py](/D:/code/diss_codex/D-CRED/scripts/teacher_review_p1_analysis.py:519), [teacher_review_p1_analysis.py](/D:/code/diss_codex/D-CRED/scripts/teacher_review_p1_analysis.py:523), [teacher_review_p1_analysis.py](/D:/code/diss_codex/D-CRED/scripts/teacher_review_p1_analysis.py:548). The audit says PASS: [p0_protocol_claim_audit.md](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/p0_protocol_claim_audit.md:14), but the tracker admits dissertation source was not edited in this run: [TEACHER_REVIEW_EXPERIMENT_TRACKER.md](/D:/code/diss_codex/D-CRED/refine-logs/TEACHER_REVIEW_EXPERIMENT_TRACKER.md:20). `CLAIMS_FROM_RESULTS.md` is also stale: it is dated 2026-05-04 and still lists manual-review residual-error sensitivity as a future experiment: [CLAIMS_FROM_RESULTS.md](/D:/code/diss_codex/D-CRED/CLAIMS_FROM_RESULTS.md:3), [CLAIMS_FROM_RESULTS.md](/D:/code/diss_codex/D-CRED/CLAIMS_FROM_RESULTS.md:56).
+
+P1: The selective-cost interpretation omits the awkward all-review comparison. At review multiplier 0.10, all-review has expected cost 0.10 for all models, below split conformal's 0.116 to 0.121: [selective_reference_policies.csv](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/selective_reference_policies.csv:3), [selective_reference_policies.csv](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/selective_reference_policies.csv:10), [selective_alpha_review_cost_tradeoff.csv](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/selective_alpha_review_cost_tradeoff.csv:6). So C4 should not be framed as "lower cost than review"; it buys about 8 to 9 percent automation while reviewing roughly 91 percent.
+
+P1: Temporal drift is correctly mostly a base-rate story, but the word "drift" must stay bounded. Default rate rises from 0.1838 train to 0.2296 validation and 0.2179 test, while top PSI values are modest, 0.039 validation and 0.061 test: [temporal_drift_summary.csv](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/temporal_drift_summary.csv:2), [temporal_drift_summary.csv](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/temporal_drift_summary.csv:3). This supports "changed operating period / base-rate shift," not strong covariate drift or causal temporal degradation.
+
+P1: Manual-review residual-error sensitivity is a reasonable stylized stress test, but its interpretation is incomplete. The formula adds `error_rate * mean(review_mask * class_cost)`, which is defensible as a simple residual classification-error penalty: [teacher_review_p1_analysis.py](/D:/code/diss_codex/D-CRED/scripts/teacher_review_p1_analysis.py:745), [teacher_review_p1_analysis.py](/D:/code/diss_codex/D-CRED/scripts/teacher_review_p1_analysis.py:759). But the break-even table compares only against robust/cost-threshold automated baselines, not all-review: [manual_review_break_even_error.csv](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/manual_review_break_even_error.csv:4), [manual_review_break_even_error.csv](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/manual_review_break_even_error.csv:13).
+
+P2: Cost scenario consolidation supports C3 only under matched assumptions. `cost_5_to_1` beats fixed 0.5 under FN:FP 5 and 10, but is worse than fixed 0.5 under FN:FP 2: [cost_policy_delta_summary.csv](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/cost_policy_delta_summary.csv:11), [cost_policy_delta_summary.csv](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/cost_policy_delta_summary.csv:14), [cost_policy_delta_summary.csv](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/cost_policy_delta_summary.csv:47). This is fine if written as "cost-aware thresholding under stated cost ratios," not "one threshold robustly improves ROI."
+
+**Minimum Fixes**
+Must-fix before writing: update `CLAIMS_FROM_RESULTS.md`; replace "deployment-ready" with "deployment-oriented"; remove residual-error sensitivity from future work; add the all-review caveat to C4; replace the P0 PASS table with a source-specific manual audit or mark it as keyword screening only.
+
+Should-fix if time: add one row or paragraph comparing split conformal to all-review at review multipliers 0.10 and 0.50; add an all-review residual-error sensitivity reference; explicitly state that alpha changes coverage but barely changes action volumes.
+
+Writing placement: main text gets temporal default-rate summary, cost-aware thresholding under FN:FP 5:1, and the selective operating point with the all-review caveat. Appendix gets PSI/KS, alpha/review-cost grid, cohort profile, and profit scenarios. Limitation/stress-test only gets manual-review residual-error sensitivity and validation reuse.
+
+**Review Questions**
+The P1 analysis genuinely answers much of the teacher review; it is not only cosmetic. The exception is P0, where the audit is mostly cosmetic.
+
+Temporal drift is not badly overinterpreted in the generated summary, but any dissertation wording stronger than "mainly base-rate shift with modest feature-distribution movement" would overclaim.
+
+Manual-review sensitivity is calculated reasonably for a stylized stress test. Its baseline interpretation is too narrow because all-review is not stress-tested alongside it.
+
+Selective decisioning is mostly conservatively framed, but the cost framing needs to admit that cheap all-review can dominate selective cost under the same perfect-review assumption.
+
+Cost/profit consolidation supports C3 as a stated-assumption expected-cost claim. It does not support production ROI. Profit tables should remain appendix-only.
+
+I found no obvious test-label leakage. Remaining risks are validation reuse, best-calibration reuse, shallow P0 audit checks, and possible cherry-picking if the all-review baseline is hidden.
+
+**Memory Update**
+- Do not trust the P0 PASS table unless it is replaced by source-specific claim auditing.
+- C4 must be written as review-burden/risk-control evidence, not selective cost dominance.
+- The all-review baseline is the key unresolved comparator for selective decisioning at cheap review cost.
+- Temporal evidence is base-rate shift plus modest PSI/KS, not strong covariate drift.
+- `CLAIMS_FROM_RESULTS.md` is stale after the 2026-05-18 supplement and should be updated before the next round.
+
+</details>
+
+### Debate Transcript (hard mode)
+
+#### Executor Rebuttal Summary
+
+- Accepted that the P0 audit is only keyword screening and proposed downgrading it plus updating `CLAIMS_FROM_RESULTS.md`.
+- Partially accepted the all-review criticism: all-review is cheaper at review multiplier 0.10 under perfect-review assumptions, while split conformal offers limited automation.
+- Partially accepted the manual-review sensitivity criticism: the formula is a valid stylized stress test against automated baselines but does not test all-review.
+- Accepted bounded temporal wording: upward default prevalence plus modest feature movement only.
+
+#### Reviewer Ruling
+
+1. **P0 audit weakness: accepted, unresolved until implemented.** Minimum required: label the P0 audit as keyword screening only, update `CLAIMS_FROM_RESULTS.md`, and perform a source-specific final dissertation claim audit.
+2. **All-review baseline weakness: partially accepted.** Minimum required: state that split conformal is cost-dominated by all-review at review multiplier 0.10 under perfect-review assumptions, but offers limited automation; put the all-review comparison in main text or adjacent appendix.
+3. **Manual-review residual-error baseline weakness: accepted, unresolved unless scoped.** Minimum required: either add all-review residual-error rows or explicitly state the sensitivity only compares selective review against automated threshold baselines and cannot establish selective cost dominance.
+4. **Temporal drift wording: accepted with bounded wording.** Main text should say default prevalence shifted upward and feature movement was modest; no causal drift, strong covariate shift, or temporal degradation language.
+
+### Actions Taken
+
+- Hard-review raw response and debate ruling recorded.
+- `review-stage/REVIEWER_MEMORY.md` initialized for this hard-mode supplement review.
+- No experiment/code/document fixes have been implemented yet because human checkpoint is enabled.
+
+### Status
+
+Waiting at human checkpoint before Phase C.
+
+## Round 2 (2026-05-18T23:10:00+08:00)
+
+### Assessment (Summary)
+
+- Score: 4.5/10 top venue; 8.8/10 MSc dissertation.
+- Verdict: ready for integrating the teacher-review P0/P1 supplement into the dissertation, with limitations preserved.
+- Key outcomes:
+  - `CLAIMS_FROM_RESULTS.md` is no longer stale and now uses deployment-oriented framing.
+  - P0 audit outputs are labeled `SCREEN`, not `PASS`, and are explicitly keyword screening only.
+  - All-review residual-error reference is present; split conformal is no longer framed as cost dominance.
+  - Manual-review residual-error sensitivity is scoped as a stylized stress test against automated threshold baselines.
+  - Dissertation source now carries the all-review caveat and no longer has `Deployment-Ready` matches in the checked files.
+
+### Reviewer Raw Response
+
+<details>
+<summary>Click to expand full reviewer response</summary>
+
+**Score:** top-venue **4.5/10** / MSc-dissertation **8.8/10**
+
+**Verdict:** **ready** for integrating the teacher-review P0/P1 supplement into the dissertation, with the existing limitations preserved.
+
+The Round 1 blockers are resolved enough for MSc integration. `CLAIMS_FROM_RESULTS.md` is no longer stale: it is dated 2026-05-18, uses "deployment-oriented," states the all-review caveat, scopes manual-review sensitivity, and labels the P0 tables as keyword screening only ([CLAIMS_FROM_RESULTS.md](/D:/code/diss_codex/D-CRED/CLAIMS_FROM_RESULTS.md:3), [CLAIMS_FROM_RESULTS.md](/D:/code/diss_codex/D-CRED/CLAIMS_FROM_RESULTS.md:27), [CLAIMS_FROM_RESULTS.md](/D:/code/diss_codex/D-CRED/CLAIMS_FROM_RESULTS.md:57)). The generated audit now says `SCREEN`, not `PASS`, and warns that it is not source-specific proof ([p0_protocol_claim_audit.md](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/p0_protocol_claim_audit.md:1), [p0_protocol_claim_audit.md](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/p0_protocol_claim_audit.md:8)).
+
+The all-review caveat is now sufficient. The key numbers are present: split conformal at multiplier 0.10 costs 0.116-0.121 with 7.8-9.3% automation, while all-review costs 0.100 at zero residual error and remains lower across the tested 1/3/5/10% residual-error rows under the same stylized class-error model ([selective_operating_point.csv](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/selective_operating_point.csv:2), [all_review_residual_error_reference.csv](/D:/code/diss_codex/D-CRED/outputs/teacher_review_p1_latest/all_review_residual_error_reference.csv:7)). I do not require another figure; an appendix table plus the current main-text caveat is enough.
+
+Manual-review residual-error sensitivity is now safely scoped. The result summary explicitly says selective rows compare against automated threshold baselines only, not all-review dominance ([TEACHER_REVIEW_EXPERIMENT_RESULTS.md](/D:/code/diss_codex/D-CRED/refine-logs/TEACHER_REVIEW_EXPERIMENT_RESULTS.md:42), [TEACHER_REVIEW_EXPERIMENT_RESULTS.md](/D:/code/diss_codex/D-CRED/refine-logs/TEACHER_REVIEW_EXPERIMENT_RESULTS.md:96)). Dissertation text also reflects this in Chapter 6 ([chapter-6.tex](/D:/code/diss_codex/ntu-dissertation/latex/chapter-6/chapter-6.tex:54)).
+
+The problematic overclaim has been removed. I found no remaining `Deployment-Ready` matches in the requested files. The dissertation now says "deployment-oriented" and explicitly rejects high-automation or all-review cost-dominance claims in the abstract, Chapter 1, Chapter 5, Chapter 6, and Chapter 7 ([abstract.tex](/D:/code/diss_codex/ntu-dissertation/latex/c-front-matter/abstract.tex:13), [chapter-5.tex](/D:/code/diss_codex/ntu-dissertation/latex/chapter-5/chapter-5.tex:134), [chapter-7.tex](/D:/code/diss_codex/ntu-dissertation/latex/chapter-7/chapter-7.tex:14)). `python -m compileall dcred scripts` also passed.
+
+**Remaining Risks**
+No remaining P0/P1 blockers for MSc integration. Residual risks are disclosure items: validation reuse remains a softer protocol, RF/XGB training caps still weaken model-ranking claims, and profit/LGD/ROI rows remain scenario evidence only ([chapter-6.tex](/D:/code/diss_codex/ntu-dissertation/latex/chapter-6/chapter-6.tex:42), [chapter-6.tex](/D:/code/diss_codex/ntu-dissertation/latex/chapter-6/chapter-6.tex:40), [chapter-6.tex](/D:/code/diss_codex/ntu-dissertation/latex/chapter-6/chapter-6.tex:52)).
+
+**Placement Guidance**
+Main text: bounded temporal default-rate shift, FN:FP 5:1 cost-aware thresholding, split-conformal operating point with all-review caveat.
+
+Appendix: PSI/KS feature-shift table, alpha/review-cost grid, reviewed-cohort profile, all-review residual-error reference, profit/LGD/ROI scenario tables.
+
+Limitations: validation reuse, manual-review residual-error not measured, no production-bank validation, no fairness/reject-inference solution, RF/XGB 50k cap.
+
+**Memory Update**
+- Round 1 P0 audit objection is resolved by relabeling keyword screening and adding a source-specific audit.
+- C4 is now acceptable only as limited automation plus review-burden analysis; all-review remains a required comparator.
+- Manual-review sensitivity is safe only as a stylized stress test against automated threshold baselines unless all-review is shown alongside it.
+- Top-venue blockers remain unchanged: validation reuse, no separate conformal holdout, public-data deployment limits, no production/fairness/reject-inference evidence.
+
+</details>
+
+### Actions Taken
+
+- Updated `CLAIMS_FROM_RESULTS.md` to 2026-05-18 claim boundaries, including all-review caveat and manual-review sensitivity scope.
+- Updated `scripts/teacher_review_p1_analysis.py` so future P0 audit outputs are keyword screening with `SCREEN` status, not `PASS`.
+- Updated current `outputs/teacher_review_p1_latest/` and timestamped P1 run artifacts with `SCREEN` audit status and all-review residual-error reference.
+- Added `refine-logs/TEACHER_REVIEW_SOURCE_SPECIFIC_CLAIM_AUDIT.md`.
+- Replaced title-level `Deployment-Ready` wording with `Deployment-Oriented` in D-CRED README and NTU dissertation source.
+- Added all-review caveats to `abstract.tex`, `chapter-1.tex`, `chapter-5.tex`, `chapter-6.tex`, and `chapter-7.tex`.
+
+### Results
+
+- Verification: `python -m compileall dcred scripts` passed.
+- Verification: `rg -n -i "Deployment-Ready" D:\code\diss_codex\D-CRED\README.md D:\code\diss_codex\ntu-dissertation\latex D:\code\diss_codex\D-CRED\CLAIMS_FROM_RESULTS.md` returned no matches.
+- Reviewer verdict: ready for MSc integration with limitations preserved.
+
+### Status
+
+Completed for the MSc teacher-review P0/P1 supplement target.
+
+## Final Summary - Teacher Review P0/P1 Supplement
+
+The hard auto-review loop stopped after Round 2 because the reviewer judged the supplement ready for MSc dissertation integration. The important claim-control changes are now explicit: P0 tables are screening aids only, temporal evidence is mainly base-rate shift plus modest feature movement, C3 is strongest under matched cost ratios, and C4 is limited automation with review burden rather than all-review cost dominance.

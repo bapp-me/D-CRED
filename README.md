@@ -1,6 +1,6 @@
 # D-CRED
 
-Deployment-Ready Credit Risk Evaluation and Decisioning.
+Deployment-Oriented Credit Risk Evaluation and Decisioning.
 
 This repository implements the experiment plan in
 `D:\code\diss_codex\refine-logs\EXPERIMENT_PLAN.md`.

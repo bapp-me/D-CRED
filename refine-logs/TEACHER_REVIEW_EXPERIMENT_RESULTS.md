@@ -7,17 +7,19 @@ Run output: `outputs\teacher_review_p1_20260518_220742`
 
 ## Results By Milestone
 
-### M0: P0 Protocol And Claim-Control Gate - DONE
+### M0: P0 Protocol And Claim-Control Keyword Screening - DONE
+
+This table is a screening aid, not a source-specific final claim audit. It must not be cited as proof that every dissertation paragraph is safe.
 
 | run_id   | check                                                                   | status   | note                                                                                     |
 |:---------|:------------------------------------------------------------------------|:---------|:-----------------------------------------------------------------------------------------|
-| R001     | Calibration selection is validation-based; test Brier is reporting only | PASS     | Code fits/chooses calibrators on validation records and reports test metrics separately. |
-| R002     | Validation reuse limitation is explicit                                 | PASS     | The limitation should cover calibration, threshold selection, and conformal quantiles.   |
-| R002     | 50k tree cap and LightGBM-RF surrogate are explicit                     | PASS     | Required for conservative model-comparison claims.                                       |
-| R002     | Reviewed cases are cost-only with no residual manual-review error       | PASS     | This is the assumption stressed by the new sensitivity analysis.                         |
-| R003     | No unsupported high-automation wording                                  | PASS     | The evidence supports review-heavy risk control, not high automation.                    |
-| R003     | No production-bank or fairness-compliance claim                         | PASS     | These should appear only as limitations/future work.                                     |
-| R003     | Temporal AUC is not claimed uniformly worse                             | PASS     | C1 should remain a deployment-setting claim.                                             |
+| R001     | Calibration selection is validation-based; test Brier is reporting only | SCREEN   | Code fits/chooses calibrators on validation records and reports test metrics separately. Keyword-screen only; source-specific final dissertation audit still required. |
+| R002     | Validation reuse limitation is explicit                                 | SCREEN   | The limitation should cover calibration, threshold selection, and conformal quantiles. Keyword-screen only; source-specific final dissertation audit still required.   |
+| R002     | 50k tree cap and LightGBM-RF surrogate are explicit                     | SCREEN   | Required for conservative model-comparison claims. Keyword-screen only; source-specific final dissertation audit still required.                                       |
+| R002     | Reviewed cases are cost-only with no residual manual-review error       | SCREEN   | This is the assumption stressed by the new sensitivity analysis. Keyword-screen only; source-specific final dissertation audit still required.                         |
+| R003     | No unsupported high-automation wording                                  | SCREEN   | The evidence supports review-heavy risk control, not high automation. Keyword-screen only; source-specific final dissertation audit still required.                    |
+| R003     | No production-bank or fairness-compliance claim                         | SCREEN   | These should appear only as limitations/future work. Keyword-screen only; source-specific final dissertation audit still required.                                     |
+| R003     | Temporal AUC is not claimed uniformly worse                             | SCREEN   | C1 should remain a deployment-setting claim. Keyword-screen only; source-specific final dissertation audit still required.                                             |
 
 ### M1: Temporal Drift Attribution - DONE
 
@@ -37,6 +39,7 @@ Run output: `outputs\teacher_review_p1_20260518_220742`
 ### M3: Manual-Review Residual-Error Sensitivity
 
 The stress test adds residual classification-error cost on reviewed cases; it is a scenario analysis, not measured reviewer performance.
+The selective rows below compare against automated threshold baselines only; they do not establish dominance over all-review.
 
 | model   |   manual_residual_error_rate |   expected_cost |   delta_vs_robust_cost |   delta_vs_cost_5_to_1 |   automation_rate |   review_rate |
 |:--------|-----------------------------:|----------------:|-----------------------:|-----------------------:|------------------:|--------------:|
@@ -67,6 +70,16 @@ Break-even residual-error rates:
 | xgb     | robust_cost |                                0.34452  | benefit survives the tested residual-error range |
 | xgb     | cost_5_to_1 |                                0.311108 | benefit survives the tested residual-error range |
 
+All-review residual-error reference:
+
+| reference   |   manual_residual_error_rate |   expected_cost |   automation_rate |   review_rate |
+|:------------|-----------------------------:|----------------:|------------------:|--------------:|
+| all_review  |                         0    |        0.1      |                 0 |             1 |
+| all_review  |                         0.01 |        0.118717 |                 0 |             1 |
+| all_review  |                         0.03 |        0.156152 |                 0 |             1 |
+| all_review  |                         0.05 |        0.193587 |                 0 |             1 |
+| all_review  |                         0.1  |        0.287173 |                 0 |             1 |
+
 ### M4: Cost And Profit Scenario Consolidation - DONE
 
 | model   | policy      |   expected_cost |   delta_vs_fixed_0.5 |   approval_rate |   approved_default_rate |
@@ -77,10 +90,10 @@ Break-even residual-error rates:
 
 ## Claim Interpretation
 
-- C1 is strengthened as a bounded deployment-setting claim: the temporal validation/test periods have higher default rates than train, and the PSI/KS table identifies which application-time features moved most.
-- C3 remains the strongest quantitative claim: cost-aware thresholds reduce expected cost versus fixed 0.5 under the stated FN:FP scenarios.
-- C4 remains conservative: split conformal is review-heavy and should be described as risk-control analysis, not high-automation lending.
-- Manual-review residual-error rows should be used as a limitation/stress test; they do not estimate real human reviewer quality.
+- C1 is strengthened only as a bounded deployment-setting claim: the temporal validation/test periods have higher default rates than train, with modest feature movement under PSI/KS.
+- C3 remains the strongest quantitative claim under matched stated cost ratios, especially FN:FP = 5:1; one threshold should not be described as universally robust or production ROI-valid.
+- C4 remains conservative: split conformal is review-heavy and offers limited automation, but it is cost-dominated by all-review at review-cost multiplier 0.10 under perfect-review assumptions.
+- Manual-review residual-error rows should be used as a limitation/stress test; they compare selective review against automated threshold baselines and do not estimate real human reviewer quality.
 
 ## Output Files
 
@@ -91,6 +104,7 @@ Break-even residual-error rates:
 - `selective_reviewed_cohort_profile.csv`
 - `manual_review_residual_error_sensitivity.csv`
 - `manual_review_break_even_error.csv`
+- `all_review_residual_error_reference.csv`
 - `cost_policy_scenario_summary.csv`
 - `profit_policy_scenario_summary.csv`
 - `number_source_map.csv`

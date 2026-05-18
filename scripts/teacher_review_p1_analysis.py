@@ -566,8 +566,12 @@ def write_p0_claim_audit(output_dir: Path, source_dir: Path) -> pd.DataFrame:
         {
             "run_id": run_id,
             "check": check,
-            "status": "PASS" if passed else "REVIEW",
-            "note": note,
+            "status": "SCREEN" if passed else "REVIEW",
+            "note": (
+                note
+                if not passed
+                else f"{note} Keyword-screen only; source-specific final dissertation audit still required."
+            ),
         }
         for run_id, check, passed, note in checks
     ]
@@ -604,13 +608,14 @@ def write_p0_audit_markdown(
     thesis_dir: Path,
 ) -> None:
     lines = [
-        "# P0 Protocol And Claim-Control Audit",
+        "# P0 Protocol And Claim-Control Keyword Screening",
         "",
         f"Generated: {datetime.now().isoformat(timespec='seconds')}",
         "",
         "## Scope",
         "",
-        "- Audited D-CRED code, claim-control notes, review outputs, and result CSVs.",
+        "- This is a keyword-screening aid over D-CRED code, claim-control notes, review outputs, result CSVs, and thesis files.",
+        "- It is not a source-specific final claim audit; safe wording in one file can mask unsafe wording elsewhere.",
         f"- Thesis draft scan: {'included ' + str(thesis_dir) if thesis_dir.exists() else 'not found'}",
         "",
         "## Checklist",
@@ -683,9 +688,11 @@ def recompute_selective_diagnostics(
     cohort = pd.DataFrame(rows)
     sensitivity_frame = pd.DataFrame(sensitivity_rows)
     break_even_frame = pd.DataFrame(break_even_rows)
+    all_review_frame = pd.DataFrame(all_review_residual_error_rows(best_records[0].y_test))
     cohort.to_csv(output_dir / "selective_reviewed_cohort_profile.csv", index=False)
     sensitivity_frame.to_csv(output_dir / "manual_review_residual_error_sensitivity.csv", index=False)
     break_even_frame.to_csv(output_dir / "manual_review_break_even_error.csv", index=False)
+    all_review_frame.to_csv(output_dir / "all_review_residual_error_reference.csv", index=False)
     return cohort, sensitivity_frame, break_even_frame
 
 
@@ -800,6 +807,27 @@ def manual_review_sensitivity_rows(
     return sensitivity_rows, break_even_rows
 
 
+def all_review_residual_error_rows(y_test: np.ndarray) -> list[dict[str, object]]:
+    y_test = np.asarray(y_test, dtype=int)
+    mean_error_cost = float(np.mean(np.where(y_test == 1, 5.0, 1.0)))
+    rows = []
+    for mult in REVIEW_COST_MULTIPLIERS:
+        for error_rate in MANUAL_ERROR_RATES:
+            rows.append(
+                {
+                    "reference": "all_review",
+                    "review_cost_multiplier": mult,
+                    "manual_residual_error_rate": error_rate,
+                    "expected_cost": mult + error_rate * mean_error_cost,
+                    "automation_rate": 0.0,
+                    "review_rate": 1.0,
+                    "mean_class_error_cost": mean_error_cost,
+                    "interpretation": "perfect-review reference plus stylized residual-error stress",
+                }
+            )
+    return rows
+
+
 def break_even_interpretation(value: float) -> str:
     if math.isnan(value):
         return "not estimable"
@@ -902,7 +930,9 @@ def write_result_summary(
         "",
         "## Results By Milestone",
         "",
-        "### M0: P0 Protocol And Claim-Control Gate - DONE",
+        "### M0: P0 Protocol And Claim-Control Keyword Screening - DONE",
+        "",
+        "This table is a screening aid, not a source-specific final claim audit. It must not be cited as proof that every dissertation paragraph is safe.",
         "",
         markdown_table(p0_audit),
         "",
@@ -939,9 +969,14 @@ def write_result_summary(
             manual_sensitivity["review_cost_multiplier"].eq(0.10)
             & manual_sensitivity["manual_residual_error_rate"].isin([0.0, 0.01, 0.03, 0.05, 0.10])
         ]
+        all_review_reference = pd.read_csv(output_dir / "all_review_residual_error_reference.csv")
+        all_review_focus = all_review_reference[
+            all_review_reference["review_cost_multiplier"].eq(0.10)
+        ]
         lines.extend(
             [
                 "The stress test adds residual classification-error cost on reviewed cases; it is a scenario analysis, not measured reviewer performance.",
+                "The selective rows below compare against automated threshold baselines only; they do not establish dominance over all-review.",
                 "",
                 markdown_table(
                     focus[
@@ -971,6 +1006,20 @@ def write_result_summary(
                         ]
                     ]
                 ),
+                "",
+                "All-review residual-error reference:",
+                "",
+                markdown_table(
+                    all_review_focus[
+                        [
+                            "reference",
+                            "manual_residual_error_rate",
+                            "expected_cost",
+                            "automation_rate",
+                            "review_rate",
+                        ]
+                    ]
+                ),
             ]
         )
     lines.extend(
@@ -993,10 +1042,10 @@ def write_result_summary(
             "",
             "## Claim Interpretation",
             "",
-            "- C1 is strengthened as a bounded deployment-setting claim: the temporal validation/test periods have higher default rates than train, and the PSI/KS table identifies which application-time features moved most.",
-            "- C3 remains the strongest quantitative claim: cost-aware thresholds reduce expected cost versus fixed 0.5 under the stated FN:FP scenarios.",
-            "- C4 remains conservative: split conformal is review-heavy and should be described as risk-control analysis, not high-automation lending.",
-            "- Manual-review residual-error rows should be used as a limitation/stress test; they do not estimate real human reviewer quality.",
+            "- C1 is strengthened only as a bounded deployment-setting claim: the temporal validation/test periods have higher default rates than train, with modest feature movement under PSI/KS.",
+            "- C3 remains the strongest quantitative claim under matched stated cost ratios, especially FN:FP = 5:1; one threshold should not be described as universally robust or production ROI-valid.",
+            "- C4 remains conservative: split conformal is review-heavy and offers limited automation, but it is cost-dominated by all-review at review-cost multiplier 0.10 under perfect-review assumptions.",
+            "- Manual-review residual-error rows should be used as a limitation/stress test; they compare selective review against automated threshold baselines and do not estimate real human reviewer quality.",
             "",
             "## Output Files",
             "",
@@ -1007,6 +1056,7 @@ def write_result_summary(
             "- `selective_reviewed_cohort_profile.csv`",
             "- `manual_review_residual_error_sensitivity.csv`",
             "- `manual_review_break_even_error.csv`",
+            "- `all_review_residual_error_reference.csv`",
             "- `cost_policy_scenario_summary.csv`",
             "- `profit_policy_scenario_summary.csv`",
             "- `number_source_map.csv`",
@@ -1048,6 +1098,11 @@ def write_number_source_map(output_dir: Path) -> None:
             "claim_or_table": "Manual-review residual-error sensitivity",
             "source_file": "manual_review_residual_error_sensitivity.csv",
             "use": "Chapter 6 limitation or appendix stress test.",
+        },
+        {
+            "claim_or_table": "All-review residual-error reference",
+            "source_file": "all_review_residual_error_reference.csv",
+            "use": "Adjacent appendix caveat for selective decisioning; do not use as production reviewer evidence.",
         },
         {
             "claim_or_table": "Cost-policy scenario summary",
@@ -1107,14 +1162,14 @@ def tracker_text(timestamp: str, skipped_cohort: bool) -> str:
         ("R102", "M1", "Produce temporal-shift summary figure/table", "P1 MUST", "DONE", "Wrote temporal_drift_summary.csv and default-rate figure."),
         ("R201", "M2", "Aggregate selective alpha/review-cost trade-off", "P1 MUST", "DONE", "Wrote selective_alpha_review_cost_tradeoff.csv from review_round1_fix."),
         ("R202", "M2", "Reconstruct reviewed-cohort profile if feasible", "P1 SHOULD", cohort_status, cohort_note),
-        ("R203", "M2", "Add all-review or no-review reference if cheap", "P1 SHOULD", "DONE", "Wrote selective_reference_policies.csv."),
-        ("R301", "M3", "Manual-review residual-error sensitivity", "P1 MUST", cohort_status, "Wrote sensitivity table when row-level masks were recomputed."),
-        ("R302", "M3", "Break-even residual-error calculation", "P1 SHOULD", cohort_status, "Wrote break-even table when row-level masks were recomputed."),
+        ("R203", "M2", "Add all-review or no-review reference if cheap", "P1 SHOULD", "DONE", "Wrote selective_reference_policies.csv and all-review residual-error reference."),
+        ("R301", "M3", "Manual-review residual-error sensitivity", "P1 MUST", cohort_status, "Wrote sensitivity table against automated threshold baselines; scope is stress-test only."),
+        ("R302", "M3", "Break-even residual-error calculation", "P1 SHOULD", cohort_status, "Wrote break-even table and all-review residual-error reference caveat."),
         ("R401", "M4", "Summarise cost-ratio policies", "P1 MUST", "DONE", "Wrote cost_policy_scenario_summary.csv and delta summary."),
         ("R402", "M4", "Summarise LGD/ROI profit scenarios", "P1 SHOULD", "DONE", "Wrote profit_policy_scenario_summary.csv as scenario-only evidence."),
         ("R501", "M5", "Produce paper-ready result tables", "P1 MUST", "DONE", "Wrote TEACHER_REVIEW_EXPERIMENT_RESULTS.md and source map."),
-        ("R502", "M5", "Update claim-boundary text", "P0 MUST", "PARTIAL", "Generated claim-boundary text; dissertation source was not edited in this experiment run."),
-        ("R503", "M5", "Final claim audit against CSVs", "P0 MUST", "DONE", "Wrote p0 audit and number_source_map.csv."),
+        ("R502", "M5", "Update claim-boundary text", "P0 MUST", "DONE", "Generated claim-boundary text; update CLAIMS_FROM_RESULTS.md before writing."),
+        ("R503", "M5", "Final claim audit against CSVs", "P0 MUST", "SCREEN", "P0 audit is keyword screening only; source-specific final dissertation audit still required."),
     ]
     lines = [
         "# Teacher Review P0/P1 Experiment Tracker",

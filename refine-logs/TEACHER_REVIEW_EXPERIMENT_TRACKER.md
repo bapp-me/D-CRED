@@ -12,10 +12,10 @@ Updated: 20260518_220742
 | R201 | M2 | Aggregate selective alpha/review-cost trade-off | P1 MUST | DONE | Wrote selective_alpha_review_cost_tradeoff.csv from review_round1_fix. |
 | R202 | M2 | Reconstruct reviewed-cohort profile if feasible | P1 SHOULD | DONE | Recomputed temporal masks and wrote cohort profile. |
 | R203 | M2 | Add all-review or no-review reference if cheap | P1 SHOULD | DONE | Wrote selective_reference_policies.csv. |
-| R301 | M3 | Manual-review residual-error sensitivity | P1 MUST | DONE | Wrote sensitivity table when row-level masks were recomputed. |
-| R302 | M3 | Break-even residual-error calculation | P1 SHOULD | DONE | Wrote break-even table when row-level masks were recomputed. |
+| R301 | M3 | Manual-review residual-error sensitivity | P1 MUST | DONE | Wrote sensitivity table against automated threshold baselines; scope is stress-test only. |
+| R302 | M3 | Break-even residual-error calculation | P1 SHOULD | DONE | Wrote break-even table and all-review residual-error reference caveat. |
 | R401 | M4 | Summarise cost-ratio policies | P1 MUST | DONE | Wrote cost_policy_scenario_summary.csv and delta summary. |
 | R402 | M4 | Summarise LGD/ROI profit scenarios | P1 SHOULD | DONE | Wrote profit_policy_scenario_summary.csv as scenario-only evidence. |
 | R501 | M5 | Produce paper-ready result tables | P1 MUST | DONE | Wrote TEACHER_REVIEW_EXPERIMENT_RESULTS.md and source map. |
-| R502 | M5 | Update claim-boundary text | P0 MUST | PARTIAL | Generated claim-boundary text; dissertation source was not edited in this experiment run. |
-| R503 | M5 | Final claim audit against CSVs | P0 MUST | DONE | Wrote p0 audit and number_source_map.csv. |
+| R502 | M5 | Update claim-boundary text | P0 MUST | DONE | Updated CLAIMS_FROM_RESULTS.md with all-review caveat and 2026-05-18 P1 sensitivity scope. |
+| R503 | M5 | Final claim audit against CSVs | P0 MUST | SCREEN | P0 audit is keyword screening only; source-specific final dissertation audit still required. |

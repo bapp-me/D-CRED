@@ -23,3 +23,15 @@
 | 2026-05-18 22:07 | /experiment-bridge | outputs/teacher_review_p1_20260518_220742 | teacher-review-p1 | timestamped P0/P1 supervisor-review reinforcement analysis outputs |
 | 2026-05-18 22:07 | /experiment-bridge | outputs/teacher_review_p1_latest | teacher-review-p1 | latest fixed-name P0/P1 reinforcement analysis outputs |
 | 2026-05-18 22:07 | /experiment-bridge | refine-logs/TEACHER_REVIEW_EXPERIMENT_RESULTS.md | teacher-review-p1 | latest P0/P1 experiment result summary |
+| 2026-05-18 23:10 | /auto-review-loop | CLAIMS_FROM_RESULTS.md | claim-control | updated teacher-review P0/P1 claim boundaries and all-review caveat |
+| 2026-05-18 23:10 | /auto-review-loop | outputs/teacher_review_p1_latest/all_review_residual_error_reference.csv | teacher-review-p1 | all-review residual-error reference for selective-decisioning caveat |
+| 2026-05-18 23:10 | /auto-review-loop | review-stage/REVIEWER_MEMORY.md | review | hard-mode reviewer memory for teacher-review P0/P1 supplement |
+| 2026-05-18 23:10 | /auto-review-loop | review-stage/TRACE_TEACHER_P1_ROUND1.md | review | hard-mode teacher-review P0/P1 review trace |
+| 2026-05-18 23:10 | /auto-review-loop | refine-logs/TEACHER_REVIEW_SOURCE_SPECIFIC_CLAIM_AUDIT.md | claim-control | source-specific audit after teacher-review P0/P1 hard-review fixes |
+| 2026-05-18 23:10 | /auto-review-loop | ../ntu-dissertation/latex/ | dissertation-writing | narrowed deployment-oriented and all-review caveat wording in dissertation source |
+| 2026-05-18 23:10 | /auto-review-loop | review-stage/TRACE_TEACHER_P1_ROUND2.md | review | hard-mode teacher-review P0/P1 re-review trace and ready verdict |
+| 2026-05-18 23:10 | /auto-review-loop | review-stage/REVIEW_STATE.json | review | completed hard-mode teacher-review P0/P1 loop state |
+| 2026-05-19 00:32 | /experiment-plan | refine-logs/REJECT_OPTION_CAPACITY_EXPERIMENT_PLAN_20260519_003218.md | implementation | timestamped full-data reject-option and capacity-aware D-CRED experiment plan |
+| 2026-05-19 00:32 | /experiment-plan | refine-logs/REJECT_OPTION_CAPACITY_EXPERIMENT_PLAN.md | implementation | latest full-data reject-option and capacity-aware D-CRED experiment plan |
+| 2026-05-19 00:32 | /experiment-plan | refine-logs/REJECT_OPTION_CAPACITY_EXPERIMENT_TRACKER_20260519_003218.md | implementation | timestamped tracker for reject-option and capacity-aware D-CRED rerun |
+| 2026-05-19 00:32 | /experiment-plan | refine-logs/REJECT_OPTION_CAPACITY_EXPERIMENT_TRACKER.md | implementation | latest tracker for reject-option and capacity-aware D-CRED rerun |
