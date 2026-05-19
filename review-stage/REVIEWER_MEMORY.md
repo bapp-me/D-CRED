@@ -17,3 +17,12 @@
 - **Resolved**: Manual-review residual-error sensitivity is scoped as a stylized stress test against automated threshold baselines.
 - **Unresolved / disclosure only**: Validation reuse, no separate conformal holdout, RF/XGB 50k cap, public-data deployment limits, no fairness/reject-inference evidence, and synthetic profit/LGD/ROI scenarios.
 - **Final MSc judgment**: Ready for integrating the teacher-review P0/P1 supplement into the dissertation with limitations preserved.
+
+## Round 1 - Reject-Option Capacity Rerun - Score: 4/10 top venue, 8/10 MSc
+
+- **New P0**: The 2026-05-19 reject-capacity rerun still violates its strongest locked-test story. It computes all-candidate `final_test` appendix metrics before primary-source freeze. The reviewer accepted that this is not test-Brier source-selection leakage, but it is not a pristine locked-final-test protocol.
+- **Resolved old issue**: The 50k-cap objection is fixed for `outputs/reject_capacity_full`; `tree_max_train_rows` is null and LR/LGBM/XGB use full rows for the new main evidence.
+- **Partially resolved old issue**: Validation reuse is mostly fixed at row level through `calibration_fit`, `calibration_select`, `policy_tune`, `risk_calibration`, and `final_test`; however, the split is row-wise chronological, not month-blocked.
+- **Unresolved claim risk**: Unlimited reject option is not the empirical win. In the primary scenario it reviews 99.1% and is effectively all-review; the supported contribution is the capacity-aware cost frontier under stated assumptions.
+- **Unresolved claim risk**: `lgbm/sigmoid` is selected by the pre-registered `calibration_select` rule only; do not claim it is robustly or scientifically best.
+- **Unresolved claim risk**: Venn-Abers fallback and empirical conformal risk control must stay appendix/baseline diagnostics with no formal guarantee language.

@@ -397,3 +397,141 @@ Completed for the MSc teacher-review P0/P1 supplement target.
 ## Final Summary - Teacher Review P0/P1 Supplement
 
 The hard auto-review loop stopped after Round 2 because the reviewer judged the supplement ready for MSc dissertation integration. The important claim-control changes are now explicit: P0 tables are screening aids only, temporal evidence is mainly base-rate shift plus modest feature movement, C3 is strongest under matched cost ratios, and C4 is limited automation with review burden rather than all-review cost dominance.
+
+## Round 1 - Reject-Option Capacity Rerun Hard Review (2026-05-19)
+
+### Assessment (Summary)
+
+- MSc defense readiness: 8/10.
+- Top-venue readiness: 4/10.
+- MSc verdict: almost ready.
+- Top-venue verdict: not ready.
+- Main protocol ruling after debate: the new run fixes the old 50k cap and explicit test-Brier source selection, and mostly fixes validation reuse at row level. It does not support the strongest "final_test read once after freeze" wording because the current code computes all-candidate final-test appendix metrics before selecting the primary source.
+- Main claim ruling: the useful revised thesis is the capacity-aware cost frontier under stated review-cost and residual-error assumptions. Unlimited reject option is not a strong empirical win because it degenerates to near all-review under cheap review.
+
+### Key Criticisms
+
+- The locked final-test claim is too strong for the current implementation. The reviewer accepted that this is not test-Brier selection leakage, but kept it as a live protocol blemish.
+- The seven-role split is row-wise chronological and row-disjoint, but not month-blocked; adjacent roles share boundary months.
+- The `lgbm/sigmoid` source is selected by the pre-registered `calibration_select` rule, not proven generally superior.
+- Venn-Abers is only an empirical binomial interval fallback, and empirical conformal risk control is a held-out risk-threshold diagnostic, not a formal guarantee.
+- Root-level claim-control files still need synchronization with the new run; old 50k/validation-reuse limitations remain in historical docs and must not be mistaken for current-run evidence.
+
+### Reviewer Raw Response
+
+<details>
+<summary>Click to expand full reviewer response</summary>
+
+1. **Scores**
+
+MSc defense readiness: **8/10**  
+Top-venue readiness: **4/10**
+
+2. **Verdict**
+
+MSc defense: **almost ready**  
+Top venue: **not ready**
+
+3. **Findings ordered by severity**
+
+- **[P0] The claimed locked `final_test` protocol is false in the implementation.**  
+  Evidence: the protocol says `final_test` should not be used for selection and may be read once after the source/scenario are fixed in `selection_protocol.md`. But the code writes per-calibrator `final_test` metrics before selecting the primary source, then selects the source, and only writes the access log afterward. The local audit incorrectly says this is clean.  
+  Minimum fix: **new frozen run label**. Select the primary source on `calibration_select`, freeze it, then evaluate `final_test` only for that frozen source. Do not generate all-candidate `final_test` appendix rows in the same locked run.
+
+- **[P1] The unlimited reject-option result is mostly a decision-theoretic tautology, and in the primary scenario it collapses to near all-review.**  
+  Evidence: the rule explicitly chooses the cheapest of approve/deny/review, and expected cost is evaluated on that same cost surface. In the primary scenario, `cost_aware_reject_option` reviews **99.10%** of cases and is only **0.000194** cheaper than `all_review` in expected cost.  
+  Minimum fix: do not claim this as strong empirical dominance. Main-text claim should be: **without capacity constraints, cheap review pushes the rule toward all-review; the empirical contribution is the budgeted frontier, not unrestricted superiority.**
+
+- **[P1] The seven-role split is row-nonoverlapping, but not a clean month-blocked temporal split.**  
+  Evidence: the split is row-wise after sorting by timestamp. The output summary shows shared boundary dates across adjacent roles, e.g. `model_dev` ends on `2015-12-01` and `calibration_fit` starts on `2015-12-01`.  
+  Minimum fix: either reword this as a **row-wise chronological split with shared boundary months**, or switch to month-grouped cutoffs and rerun.
+
+- **[P2] Calibration-source selection is compliant, but any "best model/calibrator" claim must be narrow.**  
+  Evidence: selection on `calibration_select` is correctly pre-registered and executed. But the margin is tiny: `lgbm/sigmoid` Brier `0.1794533` vs `xgb/sigmoid` `0.1794623`. On `final_test`, `xgb/raw` is slightly better by Brier/ECE than the selected source.  
+  Minimum fix: say `lgbm/sigmoid` was **selected by rule**, not that it is scientifically superior. Treat the appendix flip as temporal instability, not as permission to switch post hoc.
+
+- **[P2] Venn-Abers and "empirical conformal risk control" remain overclaim traps.**  
+  Evidence: the interval artifact explicitly says `implemented_method=empirical_binomial_interval_fallback`. The risk-control baseline is thresholding held-out auto-costs, not formal conformal control, while still labeled `empirical_conformal_risk_control`.  
+  Minimum fix: keep both as appendix/baseline diagnostics only. Remove any guarantee language. Prefer renaming in prose to "empirical interval fallback" and "held-out risk-threshold baseline."
+
+- **[P3] This run really did remove the 50k cap for the new main evidence.**  
+  Evidence: `tree_max_train_rows` is `null` in `run_config.json`, and the tracker records full-row LR/LGBM/XGB completion.  
+  Minimum fix: none for this point. This objection is addressed for `outputs/reject_capacity_full`.
+
+4. **Supported claims and narrowed claims**
+
+Supported:
+- The **50k-cap objection is fixed for this run**.
+- The **old validation-reuse objection is mostly fixed at row level**: `calibration_fit`, `calibration_select`, `policy_tune`, and `risk_calibration` are separate roles.
+- The **primary source was selected on `calibration_select`**, not on `final_test`.
+- The **capacity-aware policy yields a monotone cost-capacity frontier** in the primary scenario.
+- Standard conformal remains a **baseline**, not the main story.
+
+Narrowed:
+- Do **not** claim protocol-clean one-shot final testing.
+- Do **not** claim unlimited reject-option cost dominance as a strong empirical discovery.
+- Do **not** claim all-review is beaten in any practically important sense under cheap review; in the primary scenario the unrestricted rule is basically all-review.
+- Do **not** claim Venn-Abers or formal conformal guarantees.
+- Do **not** claim `lgbm/sigmoid` is robustly the best source; only that it was the pre-registered selected source.
+
+5. **Explicit answers**
+
+- `50k cap`: **yes for this run**.
+- Validation reuse: **mostly yes at row level**.
+- Test-Brier selection: **yes, explicit test-based source selection is removed**.
+- Strict locked-test cleanliness: **no**, because all-candidate `final_test` metrics are generated before the source is frozen.
+- Seven-role split leakage: **no row leakage found**, but it is **not a strict month-blocked split**.
+- Calibration-select source selection: **yes** as a selection rule and recorded output; **no** if interpreted as fully pristine locked-test protocol.
+- Final-test-only locked report: **no**, the code touches `final_test` earlier for all calibrators.
+- Reject-option and capacity-aware claims: unrestricted reject option only in a narrow structural sense; capacity-aware deferral is supported as a fixed-budget frontier claim.
+- Cheap all-review claim boundary: under cheap/high-quality human review, the unconstrained optimum is near all-review; D-CRED's useful contribution is exposing that dependence and offering a budget-constrained review frontier.
+- Venn-Abers and empirical conformal risk control: high overclaim risk if prose gets sloppy; keep both as appendix baselines with explicit caveats.
+
+6. **Memory update**
+
+- New P0: the 2026-05-19 reject-capacity rerun still violates its own locked-test story; `final_test` appendix metrics are produced before primary-source freeze.
+- New P1: the 50k-cap objection is fixed for `outputs/reject_capacity_full`.
+- New P1: explicit test-Brier source selection is fixed, but pristine final-test isolation is not.
+- New P1: unlimited reject option is not the paper's empirical win; in the primary scenario it degenerates to 99.1% review and is effectively all-review.
+- New P1: seven-way split is row-wise chronological, not month-blocked; boundary-month wording must be narrow.
+- New P1: keep Venn-Abers fallback and empirical CRC as appendix-only diagnostics.
+
+</details>
+
+### Debate Transcript (hard mode)
+
+**Author rebuttal.**
+
+- For Weakness 1, partially accepted: the run does not use final-test metrics for source selection, because `selection_metrics` comes from `calibration_select` and `_select_primary_candidate` reads only those metrics. However, the implementation still violates the stronger locked-final-test wording because it computes all-candidate final-test appendix metrics before primary-source selection and writes the final-test access log afterward.
+- For Weakness 2, accepted: unrestricted reject option collapses to near all-review and should not be claimed as an empirical dominance result.
+- For Weakness 3, accepted with wording clarification: row-level separation is clean, but month-blocked separation is not.
+- For Weakness 4, accepted: the selected source is selected-by-rule, not generally best.
+- For Weakness 5, accepted: Venn-Abers fallback and empirical CRC must stay appendix/baseline only.
+
+**Reviewer ruling.**
+
+- Weakness 1: **partially accepted**. The rebuttal resolves the accusation of test-Brier selection leakage, but does not resolve the false locked-test wording. Minimum clean fix remains a new frozen rerun with selected-only final-test evaluation. Rewording alone is honest enough for MSc prose, but not enough for a pristine locked-test claim.
+- Weakness 2: **accepted**. Resolved if the manuscript adopts capacity-frontier wording.
+- Weakness 3: **accepted**. Resolved as a wording issue only unless the thesis keeps claiming clean month-blocked deployment periods.
+- Weakness 4: **accepted**.
+- Weakness 5: **accepted**.
+- Scores unchanged: MSc 8/10, top venue 4/10. Verdict unchanged: MSc almost ready, top venue not ready.
+
+### Actions Taken
+
+- No code changes were made in this review round.
+- Recorded the hard-review findings, debate ruling, and updated reviewer memory.
+
+### Results
+
+- The current rerun is MSc-near-ready evidence if claims are narrowed.
+- It is not yet defense-clean under the strict locked-final-test wording.
+- It is not top-venue-ready: novelty remains modest, the cost model is stylized, and formal risk-control evidence is absent.
+
+### Status
+
+Completed for the reject-option capacity hard review. Recommended next step is a minimum repair pass: selected-only frozen final-test rerun or explicit claim rewording, split wording fix or month-blocked rerun, updated claim audit, and dissertation handoff sync.
+
+## Final Summary - Reject-Option Capacity Rerun
+
+The new `outputs/reject_capacity_full` run materially improves the D-CRED evidence base: it removes the 50k tree cap for the new main evidence, separates calibration fitting/source selection/policy/risk/final roles at row level, and replaces the old conformal-centered claim with a cost-capacity frontier. The central claim should be narrow: D-CRED exposes review-cost and review-capacity trade-offs under stated assumptions; it does not prove unrestricted reject-option superiority, formal Venn-Abers guarantees, or finite-sample conformal risk control. A strict locked-final-test claim still needs either a selected-only rerun under a new frozen label or explicit rewording that final-test appendix metrics were generated in the same reporting run but not used for source selection.
