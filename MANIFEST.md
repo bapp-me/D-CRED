@@ -45,3 +45,45 @@
 | 2026-05-19 00:57 | /experiment-bridge | refine-logs/REJECT_OPTION_CAPACITY_EXPERIMENT_TRACKER_20260519_005742.md | reject-capacity | timestamped tracker after combined full-row reject-option/capacity run |
 | 2026-05-19 00:57 | /experiment-bridge | refine-logs/REJECT_OPTION_CAPACITY_EXPERIMENT_TRACKER.md | reject-capacity | latest tracker after combined full-row reject-option/capacity run |
 | 2026-05-19 00:57 | /experiment-bridge | refine-logs/EXPERIMENT_CODE_REVIEW.md | code-review | local-only checklist for role-split reject-option/capacity implementation |
+| 2026-05-19 22:15 | /experiment-plan | refine-logs/ADVISOR_REVIEW_EXPERIMENT_PLAN_20260519_221538.md | implementation | timestamped plan from supervisor/dean review advice |
+| 2026-05-19 22:15 | /experiment-plan | refine-logs/ADVISOR_REVIEW_EXPERIMENT_PLAN.md | implementation | latest plan from supervisor/dean review advice |
+| 2026-05-19 22:15 | /experiment-plan | refine-logs/ADVISOR_REVIEW_EXPERIMENT_TRACKER_20260519_221538.md | implementation | timestamped tracker for advisor review experiments |
+| 2026-05-19 22:15 | /experiment-plan | refine-logs/ADVISOR_REVIEW_EXPERIMENT_TRACKER.md | implementation | latest tracker for advisor review experiments |
+| 2026-05-19 22:19 | /experiment-bridge | outputs/reject_capacity_month_blocked | implementation | full month-blocked selected-only-final reject-capacity rerun |
+| 2026-05-19 22:13 | /experiment-bridge | outputs/economic_feature_acquisition_pilot | implementation | proxy utility and two-stage feature-acquisition pilot |
+| 2026-05-19 22:15 | /experiment-bridge | refine-logs/ADVISOR_REVIEW_ROW_VS_MONTH_COMPARISON_20260519_221538.csv | implementation | timestamped row-wise versus month-blocked capacity-frontier comparison |
+| 2026-05-19 22:15 | /experiment-bridge | refine-logs/ADVISOR_REVIEW_ROW_VS_MONTH_COMPARISON.csv | implementation | latest row-wise versus month-blocked capacity-frontier comparison |
+| 2026-05-19 22:15 | /experiment-bridge | refine-logs/ADVISOR_REVIEW_EXPERIMENT_RESULTS_20260519_221538.md | implementation | timestamped advisor review experiment result summary |
+| 2026-05-19 22:15 | /experiment-bridge | refine-logs/ADVISOR_REVIEW_EXPERIMENT_RESULTS.md | implementation | latest advisor review experiment result summary |
+| 2026-05-19 22:15 | /experiment-bridge | refine-logs/ADVISOR_REVIEW_EXPERIMENT_CODE_REVIEW_20260519_221538.md | code-review | timestamped local-only code review for advisor experiments |
+| 2026-05-19 22:15 | /experiment-bridge | refine-logs/ADVISOR_REVIEW_EXPERIMENT_CODE_REVIEW.md | code-review | latest local-only code review for advisor experiments |
+| 2026-05-19 23:16 | /experiment-plan | refine-logs/DEAN_CASHFLOW_EXPERIMENT_PLAN_20260519_231627.md | dean-cashflow | timestamped observed-cash-flow experiment plan from dean review |
+| 2026-05-19 23:16 | /experiment-plan | refine-logs/DEAN_CASHFLOW_EXPERIMENT_PLAN.md | dean-cashflow | latest observed-cash-flow experiment plan from dean review |
+| 2026-05-19 23:16 | /experiment-plan | refine-logs/DEAN_CASHFLOW_EXPERIMENT_TRACKER_20260519_231627.md | dean-cashflow | timestamped tracker for dean cash-flow experiments |
+| 2026-05-19 23:16 | /experiment-plan | refine-logs/DEAN_CASHFLOW_EXPERIMENT_TRACKER.md | dean-cashflow | latest tracker for dean cash-flow experiments |
+| 2026-05-19 23:40 | /experiment-bridge | scripts/cashflow_feature_acquisition_experiment.py | dean-cashflow | observed Lending Club cash-flow and feature-acquisition experiment implementation |
+| 2026-05-19 23:40 | /experiment-bridge | outputs/dean_cashflow_full/ | dean-cashflow | full Lending Club cash-flow experiment outputs and CSV result tables |
+| 2026-05-19 23:40 | /experiment-bridge | refine-logs/DEAN_CASHFLOW_EXPERIMENT_RESULTS_20260519_234000.md | dean-cashflow | timestamped result summary for full observed-cash-flow experiment |
+| 2026-05-19 23:40 | /experiment-bridge | refine-logs/DEAN_CASHFLOW_EXPERIMENT_RESULTS.md | dean-cashflow | latest result summary for full observed-cash-flow experiment |
+| 2026-05-19 23:40 | /experiment-bridge | refine-logs/DEAN_CASHFLOW_EXPERIMENT_CODE_REVIEW_20260519_234000.md | code-review | timestamped local code review for dean cash-flow implementation |
+| 2026-05-19 23:40 | /experiment-bridge | refine-logs/DEAN_CASHFLOW_EXPERIMENT_CODE_REVIEW.md | code-review | latest local code review for dean cash-flow implementation |
+| 2026-05-20 00:16 | /auto-review-loop | review-stage/AUTO_REVIEW_20260520_REVIEWER_RESPONSE_NIGHTMARE.md | review | timestamped nightmare review of advisor month-blocked and dean cash-flow reviewer-response experiments |
+| 2026-05-20 00:16 | /auto-review-loop | review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_ROUND1_BEAUVOIR_20260520.md | review | raw primary reviewer response for reviewer-response nightmare audit |
+| 2026-05-20 00:16 | /auto-review-loop | review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_ROUND1_ERDOS_20260520.md | review | raw fresh adversarial verifier response for reviewer-response nightmare audit |
+| 2026-05-20 00:16 | /auto-review-loop | review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_DEBATE_20260520.md | review | raw debate ruling for reviewer-response nightmare audit |
+| 2026-05-20 00:16 | /auto-review-loop | review-stage/TRACE_REVIEWER_RESPONSE_NIGHTMARE_20260520.md | review | trace for nightmare reviewer-response audit |
+| 2026-05-20 00:16 | /auto-review-loop | review-stage/REVIEWER_MEMORY.md | review | updated reviewer memory with reviewer-response claim boundaries |
+| 2026-05-20 00:16 | /auto-review-loop | review-stage/REVIEW_STATE.json | review | completed state for reviewer-response nightmare audit |
+| 2026-05-20 00:25 | /experiment-bridge | scripts/cashflow_feature_acquisition_experiment.py | dean-cashflow | removed `funded_amnt` from predictors and added resolver guardrail excluding cash-flow columns |
+| 2026-05-20 00:25 | /experiment-bridge | outputs/dean_cashflow_full/ | dean-cashflow | clean dean cash-flow rerun after `funded_amnt` predictor fix |
+| 2026-05-20 00:25 | /experiment-bridge | refine-logs/DEAN_CASHFLOW_EXPERIMENT_RESULTS_20260520_002513.md | dean-cashflow | timestamped clean cash-flow rerun result summary |
+| 2026-05-20 00:25 | /experiment-bridge | refine-logs/DEAN_CASHFLOW_EXPERIMENT_RESULTS.md | dean-cashflow | latest clean cash-flow rerun result summary |
+| 2026-05-20 00:25 | /experiment-bridge | refine-logs/DEAN_CASHFLOW_EXPERIMENT_CODE_REVIEW_20260520_002513.md | code-review | timestamped code review for `funded_amnt` predictor repair |
+| 2026-05-20 00:25 | /experiment-bridge | refine-logs/DEAN_CASHFLOW_EXPERIMENT_CODE_REVIEW.md | code-review | latest code review for clean dean cash-flow rerun |
+| 2026-05-20 00:25 | /experiment-bridge | refine-logs/DEAN_CASHFLOW_EXPERIMENT_TRACKER_20260520_002513.md | dean-cashflow | timestamped tracker for clean cash-flow rerun |
+| 2026-05-20 00:25 | /experiment-bridge | refine-logs/DEAN_CASHFLOW_EXPERIMENT_TRACKER.md | dean-cashflow | latest tracker for clean dean cash-flow rerun |
+| 2026-05-20 00:25 | /experiment-bridge | ../paper_writing_handoff_20260511/03_narrative_and_plan/DEAN_CASHFLOW_WRITING_UPDATE_20260519.md | writing-handoff | updated dean writing handoff with clean rerun numbers and claim boundaries |
+| 2026-05-20 00:25 | /experiment-bridge | ../paper_writing_handoff_20260511/03_narrative_and_plan/ADVISOR_REVIEW_WRITING_UPDATE_20260519.md | writing-handoff | marked proxy-only dean pilot as superseded by full cash-flow rerun |
+| 2026-05-20 00:25 | /experiment-bridge | ../paper_writing_handoff_20260511/03_narrative_and_plan/DEAN_CASHFLOW_WRITING_UPDATE_20260520.md | writing-handoff | timestamped dean writing update for clean cash-flow rerun |
+| 2026-05-20 00:25 | /experiment-bridge | ../paper_writing_handoff_20260511/03_narrative_and_plan/ADVISOR_REVIEW_WRITING_UPDATE_20260520.md | writing-handoff | timestamped advisor writing update marking dean proxy pilot superseded |
+| 2026-05-20 00:25 | /experiment-bridge | review-stage/AUTO_REVIEW.md | review | appended dean cash-flow repair follow-up after clean rerun |

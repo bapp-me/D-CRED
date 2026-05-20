@@ -49,6 +49,17 @@ def main() -> None:
     reject_capacity.add_argument("--primary-cost-ratio", type=float, default=5.0)
     reject_capacity.add_argument("--primary-review-cost", type=float, default=0.10)
     reject_capacity.add_argument("--primary-human-residual-rho", type=float, default=0.10)
+    reject_capacity.add_argument(
+        "--role-split-mode",
+        choices=["row", "month"],
+        default="row",
+        help="Use row-wise chronological roles or strict month-blocked chronological roles.",
+    )
+    reject_capacity.add_argument(
+        "--selected-only-final-test",
+        action="store_true",
+        help="Write final-test metrics only for the selected calibrated source.",
+    )
 
     args = parser.parse_args()
 
@@ -95,6 +106,8 @@ def main() -> None:
                 "lending_max_rows": config.lending_max_rows,
                 "tree_max_train_rows": config.tree_max_train_rows,
                 "reduced_seeds": list(config.reduced_seeds),
+                "role_split_mode": getattr(args, "role_split_mode", None),
+                "selected_only_final_test": getattr(args, "selected_only_final_test", None),
             },
         },
     )
@@ -114,6 +127,8 @@ def main() -> None:
             primary_cost_ratio=args.primary_cost_ratio,
             primary_review_cost=args.primary_review_cost,
             primary_human_residual_rho=args.primary_human_residual_rho,
+            role_split_mode=args.role_split_mode,
+            selected_only_final_test=args.selected_only_final_test,
         )
     else:
         raise ValueError(args.command)

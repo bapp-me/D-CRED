@@ -26,3 +26,19 @@
 - **Unresolved claim risk**: Unlimited reject option is not the empirical win. In the primary scenario it reviews 99.1% and is effectively all-review; the supported contribution is the capacity-aware cost frontier under stated assumptions.
 - **Unresolved claim risk**: `lgbm/sigmoid` is selected by the pre-registered `calibration_select` rule only; do not claim it is robustly or scientifically best.
 - **Unresolved claim risk**: Venn-Abers fallback and empirical conformal risk control must stay appendix/baseline diagnostics with no formal guarantee language.
+
+## Round 1 - Reviewer-Response Nightmare Review - Score: 1.5-2/10 top venue, 6.5-7/10 MSc
+
+- **Resolved**: The advisor month-blocked evidence is strong enough for the supervisor's stated MSc-level temporal-protocol critique. The month audit is clean, `lgbm/sigmoid` remains selected, and the capacity frontier is monotone.
+- **Unresolved blocker**: The dean cash-flow run has a feature-separation contradiction. `funded_amnt` is included in the predictor groups while also being treated as a cash-flow/outcome column and marked disallowed in the audit. The experiment should be rerun without it, or reframed as post-funding analysis.
+- **Unresolved claim risk**: Cash regression quality is weak; realized policy comparison is safer than any strong expected net-cash prediction claim.
+- **Unresolved claim risk**: Predicted VOI is a negative result and must not be described as the winning method. Conformal interval review is the strongest non-oracle rule in the current run.
+- **Unresolved writing risk**: Older proxy-only dean statements remain in advisor handoff files and can mislead future writing unless marked superseded.
+- **Claim boundary**: The safe MSc story is accepted/funded-loan, observed-cash-flow decision analysis under month-blocked evaluation. It is not reject inference, not real human-review superiority, not FICO-specific, and not a top-tier ML contribution.
+
+## Repair Follow-up - Dean Cash-Flow Clean Rerun
+
+- **Addressed locally**: `funded_amnt` was removed from predictor groups and the dean cash-flow experiment was rerun under `outputs/dean_cashflow_full/`.
+- **Addressed locally**: The feature audit now marks `funded_amnt` and other cash-flow/post-origination columns as disallowed predictors.
+- **Still a claim boundary**: The rerun supports accepted-loan realized policy comparison, not full applicant-pool decisioning or reject inference.
+- **Still unresolved for top-tier**: Predicted VOI remains a negative result and cash regression remains weak, so the safe story is decision analysis rather than a new high-performing learned VOI method.

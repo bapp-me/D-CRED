@@ -535,3 +535,80 @@ Completed for the reject-option capacity hard review. Recommended next step is a
 ## Final Summary - Reject-Option Capacity Rerun
 
 The new `outputs/reject_capacity_full` run materially improves the D-CRED evidence base: it removes the 50k tree cap for the new main evidence, separates calibration fitting/source selection/policy/risk/final roles at row level, and replaces the old conformal-centered claim with a cost-capacity frontier. The central claim should be narrow: D-CRED exposes review-cost and review-capacity trade-offs under stated assumptions; it does not prove unrestricted reject-option superiority, formal Venn-Abers guarantees, or finite-sample conformal risk control. A strict locked-final-test claim still needs either a selected-only rerun under a new frozen label or explicit rewording that final-test appendix metrics were generated in the same reporting run but not used for source selection.
+
+## Round 1 - Reviewer-Response Nightmare Review (2026-05-20T00:16:14+08:00)
+
+### Assessment (Summary)
+
+- MSc score: `6.5-7/10`
+- Top-tier ML score: `1.5-2/10`
+- Verdict: `almost` for MSc after targeted repair; `not ready` for top-tier ML
+- Advisor strict month-blocked experiment: `ready` for dissertation use
+- Dean cash-flow experiment: `almost`, but needs a clean rerun or explicit reframing because of the `funded_amnt` predictor/audit contradiction
+
+### Reviewer Raw Response
+
+Full raw responses are preserved in:
+
+- `review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_ROUND1_BEAUVOIR_20260520.md`
+- `review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_ROUND1_ERDOS_20260520.md`
+- `review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_DEBATE_20260520.md`
+
+The consolidated timestamped review is:
+
+- `review-stage/AUTO_REVIEW_20260520_REVIEWER_RESPONSE_NIGHTMARE.md`
+
+### Key Criticisms
+
+- `funded_amnt` is both a cash-flow/outcome component and a model predictor in `scripts/cashflow_feature_acquisition_experiment.py`, while the audit and prose claim it is not a predictor.
+- The dean cash-flow model's final-test cash prediction is weak; the tuned cash policy is better interpreted as a realized-policy comparison than as accurate expected-net-cash modeling.
+- Predicted VOI selected zero reviews and should remain a negative result.
+- Conformal interval review is not universally beneficial across all cost/capacity and loss/profit regimes.
+- Older proxy-only dean handoff text is now superseded and should not be cited for the dean story.
+
+### Debate Transcript (nightmare mode)
+
+The author response accepted the `funded_amnt` contradiction as an unresolved blocker, accepted the advisor month-blocked repair as resolved for MSc, partially accepted the dean cash-flow evidence as narrow accepted-loan evidence, and accepted stale proxy-only handoff contamination as a writing blocker.
+
+Reviewer ruling:
+
+- `funded_amnt` contradiction: **accepted**, unresolved.
+- Advisor month-blocked temporal critique: **accepted**, resolved for the supervisor's stated MSc-level concern.
+- Dean cash-flow claims and review frontier: **partially accepted**; rerun without `funded_amnt` or reframe as post-funding analysis.
+- Stale handoff/proxy contamination: **accepted**, unresolved writing risk.
+
+### Actions Taken
+
+- No code changes were made.
+- Ran local verification checks against key markdown/CSV/code files.
+- Ran `python -m compileall dcred scripts\cashflow_feature_acquisition_experiment.py`, which passed.
+- Wrote raw reviewer responses, a trace, reviewer memory update, and a completed review state.
+
+### Results
+
+- The advisor reviewer-response experiment can be integrated as strict temporal robustness evidence.
+- The dean reviewer-response experiment should not be integrated as clean final evidence until `funded_amnt` is removed from predictors and the run is regenerated, or the narrative is explicitly reframed.
+
+### Status
+
+Completed. Recommended next step is a focused dean cash-flow repair/rerun and handoff cleanup, not a broad pivot.
+
+## Repair Follow-up - Dean Cash-Flow Clean Rerun (2026-05-20T00:25:13+08:00)
+
+### Actions Taken
+
+- Removed `funded_amnt` from `CHEAP_NUMERIC` in `scripts/cashflow_feature_acquisition_experiment.py`.
+- Added a resolver guardrail so `CASHFLOW_COLUMNS` cannot enter numeric predictor groups.
+- Reran `python scripts\cashflow_feature_acquisition_experiment.py --run-name dean_cashflow_full --primary-review-cost 10 --seed 42`.
+- Updated `refine-logs/DEAN_CASHFLOW_EXPERIMENT_RESULTS.md`, `DEAN_CASHFLOW_EXPERIMENT_CODE_REVIEW.md`, and `DEAN_CASHFLOW_EXPERIMENT_TRACKER.md`.
+- Marked proxy-only dean text as superseded in the writing handoff.
+
+### Results
+
+- `feature_audit_loan_csv.csv` now marks `funded_amnt`, repayment, recovery, and collection-fee fields as `allowed_as_predictor=False`.
+- Clean rerun preserves the qualitative result: tuned cash policy beats tuned PD on realized utility; conformal interval review remains the strongest non-oracle acquisition rule; predicted VOI selects zero reviews.
+- Key clean-rerun numbers: tuned cash `-25.96` mean utility at `0.74%` approval; tuned PD `-109.12`; conformal interval review lift `+28.57` at 5% review and `+27.10` at 10% review under $10 review cost.
+
+### Status
+
+The `funded_amnt` blocker is repaired locally and the experiment has been rerun. External nightmare re-review has not yet been rerun; the safe claim remains the narrowed accepted-loan cash-flow decision-analysis claim.

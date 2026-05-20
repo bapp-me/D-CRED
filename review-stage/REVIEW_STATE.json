@@ -1,9 +1,10 @@
 {
   "round": 1,
-  "agent_id": "019e3c11-9d22-7f40-92db-59d74aea25ac",
+  "agent_id": "019e40f3-a991-7d83-82ad-4d33e4055deb",
+  "adversarial_agent_id": "019e40f3-aa05-77a3-be41-9b39e5c1928f",
   "status": "completed",
-  "last_score": 8.0,
-  "last_verdict": "MSc almost ready after reject-option capacity rerun; top-venue score 4/10; strict locked-final-test claim unresolved",
+  "last_score": 7.0,
+  "last_verdict": "Local repair completed: funded_amnt removed and dean cash-flow rerun; advisor month-blocked ready; top-tier ML not ready",
   "pending_experiments": [],
-  "timestamp": "2026-05-19T01:26:19+08:00"
+  "timestamp": "2026-05-20T00:25:13+08:00"
 }

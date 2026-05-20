@@ -68,9 +68,7 @@ def temporal_role_split(
 ) -> dict[str, pd.Index]:
     if shares is None:
         shares = DEFAULT_ROLE_SPLIT_SHARES
-    total_share = float(sum(shares.values()))
-    if not np.isclose(total_share, 1.0):
-        raise ValueError(f"Role split shares must sum to 1.0, got {total_share:.6f}.")
+    _validate_role_shares(shares)
 
     valid = timestamp.notna()
     ordered = frame.loc[valid].assign(_dcred_timestamp=timestamp.loc[valid])
@@ -95,3 +93,64 @@ def temporal_role_split(
         role_indices[role] = pd.Index(indices[start:stop])
         start = stop
     return role_indices
+
+
+def temporal_month_blocked_role_split(
+    frame: pd.DataFrame,
+    timestamp: pd.Series,
+    shares: "OrderedDict[str, float]" | None = None,
+) -> dict[str, pd.Index]:
+    """Chronological role split where each issue month belongs to exactly one role."""
+    if shares is None:
+        shares = DEFAULT_ROLE_SPLIT_SHARES
+    _validate_role_shares(shares)
+
+    valid = timestamp.notna()
+    ordered = frame.loc[valid].assign(
+        _dcred_timestamp=timestamp.loc[valid],
+        _dcred_month=timestamp.loc[valid].dt.to_period("M").astype(str),
+    )
+    ordered = ordered.sort_values("_dcred_timestamp", kind="mergesort")
+    month_counts = ordered.groupby("_dcred_month", sort=True).size()
+    months = month_counts.index.to_numpy()
+    if len(months) < len(shares):
+        raise ValueError(
+            "Not enough distinct issue_d months for month-blocked role split: "
+            f"{len(months)} months for {len(shares)} roles."
+        )
+
+    total_rows = int(month_counts.sum())
+    cumulative_counts = month_counts.cumsum().to_numpy()
+    role_indices: dict[str, pd.Index] = {}
+    start_month = 0
+    cumulative_share = 0.0
+    items = list(shares.items())
+    for i, (role, share) in enumerate(items):
+        cumulative_share += float(share)
+        if i == len(items) - 1:
+            stop_month = len(months)
+        else:
+            remaining_roles = len(items) - i - 1
+            min_stop = start_month + 1
+            max_stop = len(months) - remaining_roles
+            candidate_stops = np.arange(min_stop, max_stop + 1)
+            target_rows = total_rows * cumulative_share
+            candidate_counts = cumulative_counts[candidate_stops - 1]
+            stop_month = int(
+                candidate_stops[np.argmin(np.abs(candidate_counts - target_rows))]
+            )
+        if stop_month <= start_month:
+            raise ValueError(f"Month-blocked split produced an empty partition for {role}.")
+        selected_months = set(months[start_month:stop_month])
+        role_frame = ordered[ordered["_dcred_month"].isin(selected_months)]
+        if role_frame.empty:
+            raise ValueError(f"Month-blocked split produced no rows for {role}.")
+        role_indices[role] = pd.Index(role_frame.index)
+        start_month = stop_month
+    return role_indices
+
+
+def _validate_role_shares(shares: "OrderedDict[str, float]") -> None:
+    total_share = float(sum(shares.values()))
+    if not np.isclose(total_share, 1.0):
+        raise ValueError(f"Role split shares must sum to 1.0, got {total_share:.6f}.")

@@ -35,7 +35,13 @@ from .modeling import (
 )
 from .reporting import default_rate_by_period, reliability_plot
 from .selective import conformal_quantile, selective_table, split_conformal_review_mask
-from .splits import DEFAULT_ROLE_SPLIT_SHARES, stratified_60_20_20, temporal_60_20_20, temporal_role_split
+from .splits import (
+    DEFAULT_ROLE_SPLIT_SHARES,
+    stratified_60_20_20,
+    temporal_60_20_20,
+    temporal_month_blocked_role_split,
+    temporal_role_split,
+)
 from .reject_option import (
     DEFAULT_CAPACITY_FRACTIONS,
     DEFAULT_HUMAN_RESIDUAL_RHOS,
@@ -256,6 +262,8 @@ def run_reject_option_capacity(
     primary_cost_ratio: float = 5.0,
     primary_review_cost: float = 0.10,
     primary_human_residual_rho: float = 0.10,
+    role_split_mode: str = "row",
+    selected_only_final_test: bool = False,
 ) -> dict[str, object]:
     set_seed(config.seed)
     output_dir = ensure_dir(config.output_dir)
@@ -276,7 +284,17 @@ def run_reject_option_capacity(
         figures_dir / "lending_default_rate_by_quarter.png",
     )
 
-    role_indices = temporal_role_split(bundle.frame, bundle.timestamp)
+    role_split_mode = role_split_mode.lower().strip()
+    if role_split_mode == "row":
+        role_indices = temporal_role_split(bundle.frame, bundle.timestamp)
+    elif role_split_mode == "month":
+        role_indices = temporal_month_blocked_role_split(bundle.frame, bundle.timestamp)
+        _month_boundary_audit(bundle, role_indices).to_csv(
+            output_dir / "month_boundary_audit.csv",
+            index=False,
+        )
+    else:
+        raise ValueError(f"Unknown role_split_mode: {role_split_mode}")
     split_summary = _role_split_summary(bundle, role_indices)
     split_summary.to_csv(output_dir / "split_role_summary.csv", index=False)
     _write_selection_protocol(
@@ -285,12 +303,15 @@ def run_reject_option_capacity(
         primary_cost_ratio,
         primary_review_cost,
         primary_human_residual_rho,
+        role_split_mode,
+        selected_only_final_test,
     )
 
     candidates, raw_rows, selection_rows, final_rows = _fit_role_candidates(
         bundle,
         role_indices,
         config,
+        include_final_appendix=not selected_only_final_test,
     )
     pd.DataFrame(raw_rows).to_csv(output_dir / "model_raw_metrics.csv", index=False)
     selection_frame = pd.DataFrame(selection_rows)
@@ -298,6 +319,19 @@ def run_reject_option_capacity(
     pd.DataFrame(final_rows).to_csv(output_dir / "calibration_final_appendix.csv", index=False)
 
     selected = _select_primary_candidate(candidates)
+    if selected_only_final_test:
+        final_rows = [
+            metrics_row(
+                selected.dataset,
+                "chronological_role",
+                selected.model,
+                selected.calibration,
+                "final_test",
+                selected.y_by_role["final_test"],
+                selected.probs_by_role["final_test"],
+            )
+        ]
+        pd.DataFrame(final_rows).to_csv(output_dir / "calibration_final_appendix.csv", index=False)
     primary_source = {
         "dataset": selected.dataset,
         "model": selected.model,
@@ -371,7 +405,14 @@ def run_reject_option_capacity(
                 "timestamp": now_stamp(),
                 "partition": "final_test",
                 "event": "locked_report_evaluation",
-                "note": "Final test used only after model/calibrator/scenario/capacity grid were fixed.",
+                "note": (
+                    "Selected-only final-test report after model/calibrator/scenario/capacity grid were fixed."
+                    if selected_only_final_test
+                    else (
+                        "Final policy report follows source selection, but all-candidate final-test "
+                        "appendix metrics were generated in the same run."
+                    )
+                ),
             }
         ]
     )
@@ -382,6 +423,8 @@ def run_reject_option_capacity(
         "lending_rows": int(len(bundle.frame)),
         "models": config.models,
         "tree_max_train_rows": config.tree_max_train_rows,
+        "role_split_mode": role_split_mode,
+        "selected_only_final_test": selected_only_final_test,
         "role_split_shares": dict(DEFAULT_ROLE_SPLIT_SHARES),
         "primary_calibrated_source": primary_source,
         "primary_scenario": {
@@ -392,6 +435,11 @@ def run_reject_option_capacity(
         },
         "final_outputs": {
             "split_role_summary": str(output_dir / "split_role_summary.csv"),
+            "month_boundary_audit": (
+                str(output_dir / "month_boundary_audit.csv")
+                if role_split_mode == "month"
+                else None
+            ),
             "calibration_selection_metrics": str(output_dir / "calibration_selection_metrics.csv"),
             "final_decision_results": str(output_dir / "final_decision_results.csv"),
             "capacity_frontier": str(output_dir / "capacity_frontier.csv"),
@@ -545,6 +593,7 @@ def _fit_role_candidates(
     bundle: DatasetBundle,
     role_indices: dict[str, pd.Index],
     config: RunConfig,
+    include_final_appendix: bool = True,
 ) -> tuple[
     list[RolePredictionCandidate],
     list[dict[str, object]],
@@ -633,17 +682,18 @@ def _fit_role_candidates(
                 probs_by_role["calibration_select"],
             )
             selection_rows.append(selection_row)
-            final_rows.append(
-                metrics_row(
-                    bundle.name,
-                    "chronological_role",
-                    spec.name,
-                    cal_name,
-                    "final_test",
-                    y_by_role["final_test"],
-                    probs_by_role["final_test"],
+            if include_final_appendix:
+                final_rows.append(
+                    metrics_row(
+                        bundle.name,
+                        "chronological_role",
+                        spec.name,
+                        cal_name,
+                        "final_test",
+                        y_by_role["final_test"],
+                        probs_by_role["final_test"],
+                    )
                 )
-            )
             candidates.append(
                 RolePredictionCandidate(
                     dataset=bundle.name,
@@ -706,9 +756,45 @@ def _role_split_summary(bundle: DatasetBundle, role_indices: dict[str, pd.Index]
             "allowed_uses": _role_allowed_use(role),
         }
         if timestamp is not None:
-            row["start_date"] = str(pd.Series(timestamp).min().date())
-            row["end_date"] = str(pd.Series(timestamp).max().date())
+            timestamp_series = pd.Series(timestamp)
+            row["start_date"] = str(timestamp_series.min().date())
+            row["end_date"] = str(timestamp_series.max().date())
+            months = timestamp_series.dt.to_period("M").astype(str)
+            row["start_month"] = str(months.min())
+            row["end_month"] = str(months.max())
+            row["n_issue_months"] = int(months.nunique())
         rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def _month_boundary_audit(bundle: DatasetBundle, role_indices: dict[str, pd.Index]) -> pd.DataFrame:
+    if bundle.timestamp is None:
+        raise ValueError("Month boundary audit requires timestamps.")
+    frames = []
+    for role, idx in role_indices.items():
+        months = bundle.timestamp.loc[idx].dt.to_period("M").astype(str)
+        frames.append(
+            pd.DataFrame(
+                {
+                    "issue_month": months.to_numpy(),
+                    "partition": role,
+                    "row_id": idx.to_numpy(),
+                }
+            )
+        )
+    assigned = pd.concat(frames, ignore_index=True)
+    rows = []
+    for month, group in assigned.groupby("issue_month", sort=True):
+        roles = sorted(group["partition"].unique())
+        rows.append(
+            {
+                "issue_month": month,
+                "rows": int(len(group)),
+                "roles": ";".join(roles),
+                "n_roles": int(len(roles)),
+                "status": "OK_NO_SHARED_MONTH" if len(roles) == 1 else "SHARED_MONTH",
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -730,6 +816,8 @@ def _write_selection_protocol(
     primary_cost_ratio: float,
     primary_review_cost: float,
     primary_human_residual_rho: float,
+    role_split_mode: str,
+    selected_only_final_test: bool,
 ) -> None:
     cap_note = (
         "No tree training row cap is configured."
@@ -746,6 +834,9 @@ Date: {now_stamp()}
 ## Frozen Role Split
 
 Chronological non-overlapping partitions use these shares: {dict(DEFAULT_ROLE_SPLIT_SHARES)}.
+Role split mode: `{role_split_mode}`.
+
+If role split mode is `month`, every natural `issue_d` month is assigned to exactly one role and `month_boundary_audit.csv` is the proof artifact. If role split mode is `row`, the split is row-wise chronological and adjacent roles may share boundary months.
 
 ## Pre-Registered Model And Calibration Rule
 
@@ -767,6 +858,9 @@ Chronological non-overlapping partitions use these shares: {dict(DEFAULT_ROLE_SP
 ## Final-Test Gate
 
 The locked final report may read `final_test` once after the primary calibrated source and primary scenario are fixed. Any post-test method change needs a new frozen run label.
+
+Final-test reporting mode: `{"selected_only" if selected_only_final_test else "all_candidate_appendix"}`.
+If this is `all_candidate_appendix`, all-candidate final-test metrics are diagnostic appendix rows and this run must not be described as a pristine selected-only final-test protocol.
 """
     write_text(path, text)
 
@@ -1013,6 +1107,12 @@ def _write_reject_capacity_results_markdown(
     capacity_frontier: pd.DataFrame,
 ) -> None:
     primary = summary["primary_calibrated_source"]
+    split_mode = summary.get("role_split_mode", "row")
+    final_mode = (
+        "selected_only"
+        if summary.get("selected_only_final_test")
+        else "all_candidate_appendix"
+    )
     selected_rows = selection_frame.sort_values(["brier", "ece", "nll"]).head(5)
     primary_scenario = summary["primary_scenario"]
     scenario_id = CostScenario(
@@ -1033,6 +1133,8 @@ def _write_reject_capacity_results_markdown(
         f"- Model: `{primary['model']}`",
         f"- Calibration: `{primary['calibration']}`",
         "- Selected on: `calibration_select` by Brier, ECE, then NLL.",
+        f"- Role split mode: `{split_mode}`.",
+        f"- Final-test reporting mode: `{final_mode}`.",
         "",
         "## Top Calibration Candidates On Calibration-Select",
         "",
