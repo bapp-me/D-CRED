@@ -42,3 +42,13 @@
 - **Addressed locally**: The feature audit now marks `funded_amnt` and other cash-flow/post-origination columns as disallowed predictors.
 - **Still a claim boundary**: The rerun supports accepted-loan realized policy comparison, not full applicant-pool decisioning or reject inference.
 - **Still unresolved for top-tier**: Predicted VOI remains a negative result and cash regression remains weak, so the safe story is decision analysis rather than a new high-performing learned VOI method.
+
+## Round 2 - Blind-Review Response Bundle - Score: 1.8/10 top venue, 6.8/10 MSc
+
+- **Resolved partially**: The blind-review bundle now contains real artifacts for cost sensitivity, capacity CI/baselines, cash-flow approval frontier, responsible-credit audit, and all-field audit.
+- **New P0**: `locked_final_protocol` is not a true frozen rerun; tracker marks BR201/BR202 as `DONE_REUSED`, and the 2026-05-20 package points back to pre-existing 2026-05-19/2026-05-20 source runs.
+- **Unresolved claim risk**: The cash-flow layer is still a negative result. `cashflow_coverage_constrained_best_policy.csv` selects `pd_risk_ranking` at every approval target, and all deployable mean net cash values remain negative.
+- **Unresolved claim risk**: The capacity frontier is better framed now, but D-CRED does not cleanly separate from uncertainty at the CI level; empirical-risk baseline is partly degenerate above 20% capacity.
+- **Unresolved claim risk**: The responsible-credit audit is too shallow for strong deployment-oriented wording. It lacks direct with/without-zip outputs and policy-conditioned utility/realized-cost columns; most `zip3` rows are small-cell suppressed.
+- **Unresolved disclosure**: The strict/default/expanded feature stress test is only a 400k-row sanity cap and should not be sold as a full-data blind-review closure.
+- **Process risk**: BR703/BR704 remain pending unless the handoff and thesis claim-control files are updated to the downgraded wording.

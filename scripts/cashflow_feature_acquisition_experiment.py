@@ -154,6 +154,16 @@ def main() -> None:
     predictions.update(_policy_thresholds(frame, predictions))
     exp1 = _economic_utility_table(frame, predictions)
     exp1.to_csv(output_dir / "economic_utility_decisions.csv", index=False)
+    approval_frontier = _utility_approval_frontier(frame, role_indices, predictions, args.seed)
+    approval_frontier.to_csv(output_dir / "utility_approval_frontier.csv", index=False)
+    _coverage_constrained_best_policy(approval_frontier).to_csv(
+        output_dir / "coverage_constrained_best_policy.csv",
+        index=False,
+    )
+    _cashflow_policy_predictions(frame, role_indices, predictions).to_csv(
+        output_dir / "cashflow_policy_predictions.csv",
+        index=False,
+    )
 
     voi_model = _fit_voi_model(frame, role_indices, feature_groups, predictions, args.seed, args.target_scale)
     predictions["voi_pred_gross"] = voi_model.predict(frame.loc[role_indices["final_test"]]) * args.target_scale
@@ -191,6 +201,11 @@ def main() -> None:
             "primary_review_cost": args.primary_review_cost,
             "outputs": {
                 "economic_utility_decisions": str(output_dir / "economic_utility_decisions.csv"),
+                "utility_approval_frontier": str(output_dir / "utility_approval_frontier.csv"),
+                "coverage_constrained_best_policy": str(
+                    output_dir / "coverage_constrained_best_policy.csv"
+                ),
+                "cashflow_policy_predictions": str(output_dir / "cashflow_policy_predictions.csv"),
                 "feature_acquisition_frontier": str(output_dir / "feature_acquisition_frontier.csv"),
                 "review_cost_sensitivity": str(output_dir / "review_cost_sensitivity.csv"),
                 "loss_profit_ratio_sensitivity": str(output_dir / "loss_profit_ratio_sensitivity.csv"),
@@ -519,6 +534,166 @@ def _decision_row(
     if extra:
         row.update(extra)
     return row
+
+
+def _utility_approval_frontier(
+    frame: pd.DataFrame,
+    role_indices: dict[str, pd.Index],
+    predictions: dict[str, np.ndarray],
+    seed: int,
+) -> pd.DataFrame:
+    final_idx = role_indices["final_test"]
+    final = frame.loc[final_idx]
+    net_cash = final["net_cash"].to_numpy(dtype=float)
+    bad_loan = final["bad_loan"].to_numpy(dtype=int)
+    issue_month = final["issue_d"].dt.to_period("M").astype(str).to_numpy()
+    pd_score = predictions["full_pd_final_test"]
+    cash_score = predictions["full_cash_final_test"]
+    hybrid_score = _zscore(cash_score) - _zscore(pd_score)
+    rng = np.random.default_rng(seed)
+    random_score = rng.random(len(final))
+
+    scores = {
+        "pd_risk_ranking": -pd_score,
+        "predicted_cash_ranking": cash_score,
+        "hybrid_pd_cash_ranking": hybrid_score,
+        "random_approval": random_score,
+        "oracle_net_cash_upper_bound": net_cash,
+    }
+    rows = []
+    for approval_rate in (0.01, 0.05, 0.10, 0.20, 0.30, 0.50, 0.65):
+        for policy, score in scores.items():
+            approve_mask = _top_fraction_mask(score, approval_rate, positive_only=False)
+            row = _approval_frontier_row(policy, approval_rate, net_cash, bad_loan, approve_mask)
+            row.update(_month_bootstrap_cash_ci(net_cash, bad_loan, approve_mask, issue_month, seed))
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def _coverage_constrained_best_policy(frontier: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for approval_rate, group in frontier.groupby("approval_rate", sort=True):
+        deployable = group[group["interpretation"].ne("unattainable upper bound")].copy()
+        if deployable.empty:
+            deployable = group.copy()
+        ordered = deployable.sort_values(
+            ["mean_net_cash_per_app", "default_rate_approved"],
+            ascending=[False, True],
+        )
+        best = ordered.iloc[0].to_dict()
+        best["selection_rule"] = (
+            "max deployable mean_net_cash_per_app; tie-break lower default_rate_approved"
+        )
+        rows.append(best)
+    return pd.DataFrame(rows)
+
+
+def _cashflow_policy_predictions(
+    frame: pd.DataFrame,
+    role_indices: dict[str, pd.Index],
+    predictions: dict[str, np.ndarray],
+) -> pd.DataFrame:
+    final_idx = role_indices["final_test"]
+    final = frame.loc[final_idx]
+    return pd.DataFrame(
+        {
+            "row_id": final_idx.to_numpy(),
+            "issue_d": final["issue_d"].to_numpy(),
+            "bad_loan": final["bad_loan"].to_numpy(dtype=int),
+            "net_cash": final["net_cash"].to_numpy(dtype=float),
+            "full_pd_prob_default": predictions["full_pd_final_test"],
+            "full_cash_predicted_net_cash": predictions["full_cash_final_test"],
+            "cheap_pd_prob_default": predictions["cheap_pd_final_test"],
+            "cheap_cash_predicted_net_cash": predictions["cheap_cash_final_test"],
+        }
+    )
+
+
+def _approval_frontier_row(
+    policy: str,
+    approval_rate: float,
+    net_cash: np.ndarray,
+    bad_loan: np.ndarray,
+    approve_mask: np.ndarray,
+) -> dict[str, object]:
+    approved_cash = np.where(approve_mask, net_cash, 0.0)
+    approved = net_cash[approve_mask]
+    approved_bad = bad_loan[approve_mask]
+    return {
+        "policy": policy,
+        "approval_rate": float(np.mean(approve_mask)),
+        "target_approval_rate": approval_rate,
+        "n_approved": int(np.sum(approve_mask)),
+        "mean_net_cash_per_app": float(np.mean(approved_cash)),
+        "mean_net_cash_approved": _safe_mean(approved),
+        "total_net_cash": float(np.sum(approved_cash)),
+        "default_rate_approved": _safe_mean(approved_bad),
+        "missed_profitable_loan_opportunity_cost": float(
+            np.mean(np.where((~approve_mask) & (net_cash > 0.0), net_cash, 0.0))
+        ),
+        "approved_loss_magnitude_per_app": float(
+            np.mean(np.where(approve_mask & (net_cash < 0.0), -net_cash, 0.0))
+        ),
+        "interpretation": (
+            "unattainable upper bound"
+            if policy == "oracle_net_cash_upper_bound"
+            else "deployable ranking proxy"
+        ),
+    }
+
+
+def _month_bootstrap_cash_ci(
+    net_cash: np.ndarray,
+    bad_loan: np.ndarray,
+    approve_mask: np.ndarray,
+    issue_month: np.ndarray,
+    seed: int,
+    n_bootstrap: int = 200,
+) -> dict[str, float | int]:
+    months = np.unique(issue_month)
+    if len(months) < 2:
+        return {
+            "n_bootstrap_months": int(len(months)),
+            "mean_net_cash_ci_low": np.nan,
+            "mean_net_cash_ci_high": np.nan,
+            "default_rate_ci_low": np.nan,
+            "default_rate_ci_high": np.nan,
+        }
+    rng = np.random.default_rng(seed)
+    cash_values = []
+    default_rates = []
+    for _ in range(n_bootstrap):
+        sampled = rng.choice(months, size=len(months), replace=True)
+        idx = np.concatenate([np.flatnonzero(issue_month == month) for month in sampled])
+        boot_mask = approve_mask[idx]
+        cash_values.append(float(np.mean(np.where(boot_mask, net_cash[idx], 0.0))))
+        if np.any(boot_mask):
+            default_rates.append(float(np.mean(bad_loan[idx][boot_mask])))
+    return {
+        "n_bootstrap_months": int(len(months)),
+        "mean_net_cash_ci_low": float(np.quantile(cash_values, 0.025)),
+        "mean_net_cash_ci_high": float(np.quantile(cash_values, 0.975)),
+        "default_rate_ci_low": (
+            float(np.quantile(default_rates, 0.025)) if default_rates else np.nan
+        ),
+        "default_rate_ci_high": (
+            float(np.quantile(default_rates, 0.975)) if default_rates else np.nan
+        ),
+    }
+
+
+def _zscore(values: np.ndarray) -> np.ndarray:
+    values = np.asarray(values, dtype=float)
+    std = float(np.nanstd(values))
+    if std <= 0.0 or not np.isfinite(std):
+        return np.zeros_like(values)
+    return (values - float(np.nanmean(values))) / std
+
+
+def _safe_mean(values: np.ndarray) -> float:
+    if len(values) == 0:
+        return float("nan")
+    return float(np.mean(values))
 
 
 def _capacity_frontier(

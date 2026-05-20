@@ -1,10 +1,15 @@
 {
   "round": 1,
-  "agent_id": "019e40f3-a991-7d83-82ad-4d33e4055deb",
-  "adversarial_agent_id": "019e40f3-aa05-77a3-be41-9b39e5c1928f",
+  "agent_id": "019e45dd-035a-7962-8b73-6b5ff5e99535",
+  "adversarial_agent_id": "019e45dd-03c8-70d0-bd70-d9985b816f9c",
   "status": "completed",
-  "last_score": 7.0,
-  "last_verdict": "Local repair completed: funded_amnt removed and dean cash-flow rerun; advisor month-blocked ready; top-tier ML not ready",
-  "pending_experiments": [],
-  "timestamp": "2026-05-20T00:25:13+08:00"
+  "last_score": 6.8,
+  "last_verdict": "Almost / limited ready for MSc writing only after downgraded claim-control sync; blind-review closure not achieved",
+  "pending_experiments": [
+    "true frozen-config rerun if Point 2 must be closed",
+    "same-protocol layer ablation if A0-A5 is a main table",
+    "full-data with-vs-without-zip policy audit",
+    "full-data same-model strict/default/expanded stress"
+  ],
+  "timestamp": "2026-05-20T23:20:00+08:00"
 }

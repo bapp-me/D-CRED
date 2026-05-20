@@ -87,3 +87,32 @@
 | 2026-05-20 00:25 | /experiment-bridge | ../paper_writing_handoff_20260511/03_narrative_and_plan/DEAN_CASHFLOW_WRITING_UPDATE_20260520.md | writing-handoff | timestamped dean writing update for clean cash-flow rerun |
 | 2026-05-20 00:25 | /experiment-bridge | ../paper_writing_handoff_20260511/03_narrative_and_plan/ADVISOR_REVIEW_WRITING_UPDATE_20260520.md | writing-handoff | timestamped advisor writing update marking dean proxy pilot superseded |
 | 2026-05-20 00:25 | /experiment-bridge | review-stage/AUTO_REVIEW.md | review | appended dean cash-flow repair follow-up after clean rerun |
+| 2026-05-20 22:00 | /experiment-plan | refine-logs/BLIND_REVIEW_EXPERIMENT_PLAN_20260520_220049.md | blind-review | timestamped experiment plan converting every blind-review expert point into claim-driven D-CRED reviewer-response experiments |
+| 2026-05-20 22:00 | /experiment-plan | refine-logs/BLIND_REVIEW_EXPERIMENT_PLAN.md | blind-review | latest blind-review experiment plan |
+| 2026-05-20 22:00 | /experiment-plan | refine-logs/BLIND_REVIEW_EXPERIMENT_TRACKER_20260520_220049.md | blind-review | timestamped tracker for blind-review experiment plan |
+| 2026-05-20 22:00 | /experiment-plan | refine-logs/BLIND_REVIEW_EXPERIMENT_TRACKER.md | blind-review | latest tracker for blind-review experiment plan |
+
+| 2026-05-20 22:31 | /experiment-bridge | outputs/blind_review_response_20260520-223108 | blind-review | timestamped blind-review reviewer-response evidence pack |
+| 2026-05-20 22:31 | /experiment-bridge | outputs/blind_review_response_latest | blind-review | latest blind-review reviewer-response evidence pack |
+| 2026-05-20 22:31 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_RESULTS.md | blind-review | latest blind-review experiment result summary |
+| 2026-05-20 22:31 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_CODE_REVIEW.md | code-review | local-only code review for blind-review response implementation |
+| 2026-05-20 22:31 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_TRACKER.md | blind-review | tracker updated after blind-review response experiment run |
+
+| 2026-05-20 22:33 | /experiment-bridge | outputs/blind_review_response_20260520-223244 | blind-review | timestamped blind-review reviewer-response evidence pack |
+| 2026-05-20 22:33 | /experiment-bridge | outputs/blind_review_response_latest | blind-review | latest blind-review reviewer-response evidence pack |
+| 2026-05-20 22:33 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_RESULTS.md | blind-review | latest blind-review experiment result summary |
+| 2026-05-20 22:33 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_CODE_REVIEW.md | code-review | local-only code review for blind-review response implementation |
+| 2026-05-20 22:33 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_TRACKER.md | blind-review | tracker updated after blind-review response experiment run |
+
+| 2026-05-20 22:34 | /experiment-bridge | outputs/blind_review_response_20260520-223406 | blind-review | timestamped blind-review reviewer-response evidence pack |
+| 2026-05-20 22:34 | /experiment-bridge | outputs/blind_review_response_latest | blind-review | latest blind-review reviewer-response evidence pack |
+| 2026-05-20 22:34 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_RESULTS.md | blind-review | latest blind-review experiment result summary |
+| 2026-05-20 22:34 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_CODE_REVIEW.md | code-review | local-only code review for blind-review response implementation |
+| 2026-05-20 22:34 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_TRACKER.md | blind-review | tracker updated after blind-review response experiment run |
+
+| 2026-05-20 23:20 | /auto-review-loop | review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_BLIND_ROUND1_CONFUCIUS_20260520.md | review | raw primary nightmare review for blind-review response package |
+| 2026-05-20 23:20 | /auto-review-loop | review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_BLIND_ROUND1_KANT_20260520.md | review | raw fresh adversarial verification for blind-review response package |
+| 2026-05-20 23:20 | /auto-review-loop | review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_BLIND_DEBATE_20260520.md | review | debate ruling for blind-review response package |
+| 2026-05-20 23:20 | /auto-review-loop | review-stage/TRACE_BLIND_REVIEW_NIGHTMARE_20260520.md | review | trace for blind-review nightmare audit |
+| 2026-05-20 23:20 | /auto-review-loop | review-stage/CLAIMS_FROM_RESULTS_BLIND_REVIEW_NIGHTMARE_20260520.md | claim-control | downgraded claim boundary after blind-review nightmare audit |
+| 2026-05-20 23:20 | /auto-review-loop | review-stage/REVIEW_STATE.json | review | completed blind-review nightmare audit state |

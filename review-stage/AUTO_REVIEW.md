@@ -612,3 +612,46 @@ Completed. Recommended next step is a focused dean cash-flow repair/rerun and ha
 ### Status
 
 The `funded_amnt` blocker is repaired locally and the experiment has been rerun. External nightmare re-review has not yet been rerun; the safe claim remains the narrowed accepted-loan cash-flow decision-analysis claim.
+
+## Round 1 - Blind-Review Response Nightmare Audit (2026-05-20T23:20:00+08:00)
+
+### Assessment (Summary)
+
+- Score: `6.8/10` MSc from the primary reviewer; `6.5/10` MSc from the fresh adversarial verifier.
+- Top-tier score: `1.8/10` and `1.5/10`.
+- Verdict after debate: `almost / limited ready` for MSc thesis writing only after claim-control downgrade; not ready as a claim that the blind-review points are fully closed.
+
+### Reviewer Raw Responses
+
+Raw responses are preserved in:
+
+- `review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_BLIND_ROUND1_CONFUCIUS_20260520.md`
+- `review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_BLIND_ROUND1_KANT_20260520.md`
+- `review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_BLIND_DEBATE_20260520.md`
+
+### Key Criticisms
+
+- `locked_final_protocol` is a retrospective selected-only wrapper around existing source runs, not a true frozen-config rerun.
+- `dcred_layer_ablation_table.csv` is a stitched narrative summary across different populations and source runs, not a controlled single-protocol ablation.
+- Cash-flow remains a negative/mixed result: all deployable approval-constrained policies have negative utility and PD ranking is selected at every target approval rate.
+- Capacity frontier evidence should be written as a trade-off, not dominance over matched baselines; some baselines are not truly capacity-matched.
+- Responsible-credit and feature audit outputs are risk-exposure / header-catalog / capped-sanity evidence only.
+
+### Debate Transcript
+
+The executor accepted the three main objections and proposed downscoped wording. The reviewer ruled:
+
+- `locked_final_protocol`: accepted; resolved for MSc writing only as limitation/disclosure, not as closure of blind-review Point 2.
+- cash-flow negative result: accepted; resolved for MSc writing if A5 and the cash-flow section are rewritten as negative/mixed decision analysis.
+- responsible-credit / feature audit: partially accepted; acceptable as appendix/limitation evidence, not as closure of Points 8/11.
+
+### Actions Taken
+
+- Wrote raw reviewer responses and trace files.
+- Appended reviewer memory with the blind-review response concerns.
+- Wrote `review-stage/CLAIMS_FROM_RESULTS_BLIND_REVIEW_NIGHTMARE_20260520.md`.
+- Updated `review-stage/REVIEW_STATE.json` with completed state and unresolved blockers.
+
+### Status
+
+Completed for this review pass. The next action is claim-control and handoff synchronization. Further experiments are needed only if the thesis must claim full closure of the blind-review points rather than limited MSc readiness.
