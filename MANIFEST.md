@@ -116,3 +116,21 @@
 | 2026-05-20 23:20 | /auto-review-loop | review-stage/TRACE_BLIND_REVIEW_NIGHTMARE_20260520.md | review | trace for blind-review nightmare audit |
 | 2026-05-20 23:20 | /auto-review-loop | review-stage/CLAIMS_FROM_RESULTS_BLIND_REVIEW_NIGHTMARE_20260520.md | claim-control | downgraded claim boundary after blind-review nightmare audit |
 | 2026-05-20 23:20 | /auto-review-loop | review-stage/REVIEW_STATE.json | review | completed blind-review nightmare audit state |
+
+| 2026-05-20 23:43 | /experiment-bridge | outputs/blind_review_response_20260520-closure_safe | blind-review | timestamped blind-review reviewer-response evidence pack |
+| 2026-05-20 23:43 | /experiment-bridge | outputs/blind_review_response_latest | blind-review | latest blind-review reviewer-response evidence pack |
+| 2026-05-20 23:43 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_RESULTS.md | blind-review | latest blind-review experiment result summary |
+| 2026-05-20 23:43 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_CODE_REVIEW.md | code-review | local-only code review for blind-review response implementation |
+| 2026-05-20 23:43 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_TRACKER.md | blind-review | tracker updated after blind-review response experiment run |
+
+| 2026-05-20 23:56 | /auto-review-loop | review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_BLIND_CLOSURE_SAFE_GALILEO_20260520.md | review | primary memory nightmare reviewer acceptance of closure-safe blind-review response |
+| 2026-05-20 23:56 | /auto-review-loop | review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_BLIND_CLOSURE_SAFE_LEIBNIZ_20260520.md | review | fresh adversarial verifier acceptance of closure-safe blind-review response |
+| 2026-05-20 23:56 | /auto-review-loop | review-stage/TRACE_BLIND_REVIEW_CLOSURE_SAFE_NIGHTMARE_20260520.md | review | trace for closure-safe nightmare re-review |
+| 2026-05-20 23:56 | /auto-review-loop | review-stage/FINAL_CLAIM_GREP_AUDIT_BLIND_REVIEW_CLOSURE_20260520.md | claim-control | final grep audit for current closure-safe experiment artifacts |
+| 2026-05-20 23:56 | /auto-review-loop | review-stage/REVIEW_STATE.json | review | completed state: MSc expert-recognized for claim-controlled writing, no pending experiments |
+
+| 2026-05-20 23:55 | /experiment-bridge | outputs/blind_review_response_20260520-closure_safe | blind-review | timestamped blind-review reviewer-response evidence pack |
+| 2026-05-20 23:55 | /experiment-bridge | outputs/blind_review_response_latest | blind-review | latest blind-review reviewer-response evidence pack |
+| 2026-05-20 23:55 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_RESULTS.md | blind-review | latest blind-review experiment result summary |
+| 2026-05-20 23:55 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_CODE_REVIEW.md | code-review | local-only code review for blind-review response implementation |
+| 2026-05-20 23:55 | /experiment-bridge | refine-logs/BLIND_REVIEW_EXPERIMENT_TRACKER.md | blind-review | tracker updated after blind-review response experiment run |

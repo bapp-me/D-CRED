@@ -655,3 +655,49 @@ The executor accepted the three main objections and proposed downscoped wording.
 ### Status
 
 Completed for this review pass. The next action is claim-control and handoff synchronization. Further experiments are needed only if the thesis must claim full closure of the blind-review points rather than limited MSc readiness.
+
+## Round 2 - Closure-Safe Blind-Review Nightmare Re-Review (2026-05-20T23:56:00+08:00)
+
+### Assessment (Summary)
+
+- Primary memory reviewer: MSc `8.2/10`, top-tier ML `2.3/10`.
+- Fresh adversarial verifier: MSc `8/10`, top-tier ML `3/10`.
+- Verdict: experiment/reviewer-response loop can stop as expert-recognized for MSc claim-controlled writing.
+- Remaining gate: BR704 thesis-text claim audit after integration.
+
+### Reviewer Raw Responses
+
+Raw responses are preserved in:
+
+- `review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_BLIND_CLOSURE_SAFE_GALILEO_20260520.md`
+- `review-stage/RAW_REVIEWER_RESPONSE_NIGHTMARE_BLIND_CLOSURE_SAFE_LEIBNIZ_20260520.md`
+
+Trace:
+
+- `review-stage/TRACE_BLIND_REVIEW_CLOSURE_SAFE_NIGHTMARE_20260520.md`
+
+### Key Rulings
+
+- The true pre-run frozen selected-only rerun is accepted for MSc-level locked-final hygiene.
+- Capacity evidence is MSc-usable as conditional, CI-aware capacity allocation evidence, not algorithmic dominance.
+- Responsible-credit evidence is acceptable as risk-exposure audit only.
+- Feature stress is acceptable as deterministic 50k-row same-model capped evidence only.
+- Cash-flow remains negative/mixed and must be written as accepted-loan decision analysis, not a deployable cash-model win.
+
+### Actions Taken
+
+- Added resource safety guardrails to `scripts/blind_review_response_experiments.py`: full-data stress is refused without an explicit dangerous flag, LGBM stress defaults to bounded parallelism, deterministic sample spans the full CSV, and a progress log is written.
+- Regenerated `outputs/blind_review_response_20260520-closure_safe/` and `outputs/blind_review_response_latest/`.
+- Renamed `allowed_expanded` in `all_fields_feature_audit.csv` to `included_expanded_stress`.
+- Reworded the result summary to state the selected-only evidence is from the true pre-run frozen month-blocked selected source.
+- Synced the closure-safe pack and claim-control file into `paper_writing_handoff_20260511/`.
+- Wrote `review-stage/FINAL_CLAIM_GREP_AUDIT_BLIND_REVIEW_CLOSURE_20260520.md`.
+
+### Results
+
+- The experiment loop has reached expert recognition for MSc claim-controlled writing.
+- No further major experiment is required unless the thesis audit finds overclaiming or the supervisor asks a new empirical question.
+
+### Status
+
+Completed. BR704 remains a later writing-stage audit after thesis integration.

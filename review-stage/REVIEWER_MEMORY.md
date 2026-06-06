@@ -52,3 +52,16 @@
 - **Unresolved claim risk**: The responsible-credit audit is too shallow for strong deployment-oriented wording. It lacks direct with/without-zip outputs and policy-conditioned utility/realized-cost columns; most `zip3` rows are small-cell suppressed.
 - **Unresolved disclosure**: The strict/default/expanded feature stress test is only a 400k-row sanity cap and should not be sold as a full-data blind-review closure.
 - **Process risk**: BR703/BR704 remain pending unless the handoff and thesis claim-control files are updated to the downgraded wording.
+
+## Round 3 - Closure-Safe Blind-Review Response - Score: 2.3/10 top venue, 8.2/10 MSc
+
+- **Resolved**: The locked-final objection is now genuinely fixed at MSc level. `blind_review_locked_rerun_20260520-231339` contains a pre-run manifest/config before selected predictions and final decisions, uses month-blocked roles, and writes selected-only final-test evidence.
+- **Resolved**: Month-blocked protocol is clean: all 139 issue months are assigned to one role only.
+- **Resolved**: The dean cash-flow `funded_amnt` predictor contradiction is fixed in `dean_cashflow_full`; cash-flow and post-origination fields are disallowed predictors.
+- **Resolved for process**: BR703 handoff sync is done, and the closure-safe claim-control file is mirrored into `paper_writing_handoff_20260511`.
+- **Partially resolved**: Capacity evidence is MSc-usable but not a top-tier algorithmic win. D-CRED improves over no-review/random at constrained capacity, but is identical to empirical-risk in the matched frontier and overlaps uncertainty-review CIs.
+- **Partially resolved**: Responsible-credit audit now includes policy-conditioned costs and zip/no-zip capped stress, but remains only a risk-exposure audit, not fairness/legal compliance evidence.
+- **Disclosure only**: Strict/default/expanded feature stress is deterministic 50k-row same-model capped evidence. Acceptable only if disclosed as resource-bounded.
+- **Unresolved claim boundary**: Cash-flow remains negative/mixed. PD risk ranking is selected at every approval target and deployable mean net cash remains negative; cash regression R2 is negative.
+- **Unresolved writing gate**: BR704 thesis claim audit remains pending after thesis integration.
+- **Final MSc judgment**: The experiment/review loop can stop as expert-recognized for MSc claim-controlled writing, but the thesis is not final-submission-ready until BR704 confirms the revised text preserves these boundaries.

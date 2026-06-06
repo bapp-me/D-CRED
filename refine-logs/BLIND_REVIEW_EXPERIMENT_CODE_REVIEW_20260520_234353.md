@@ -1,6 +1,6 @@
 # Blind Review Experiment Code Review
 
-Date: 20260520-235556
+Date: 20260520-234353
 Review mode: local-only checklist, because this run did not explicitly request sub-agent delegation.
 
 ## Checked
@@ -10,7 +10,7 @@ Review mode: local-only checklist, because this run did not explicitly request s
 - Capacity and sensitivity evaluations use explicit `CostScenario` parameters and write parseable CSV files.
 - Responsible-credit outputs include policy-conditioned cost columns and suppress small-cell metrics.
 - Cash-flow approval frontier is separated from unconstrained threshold wins and marks oracle rows as unattainable upper bounds.
-- Feature-set stress uses the same LGBM/sigmoid model family; `included_expanded_stress` means stress-test inclusion, not deployment permission.
+- Feature-set stress uses the same LGBM/sigmoid model family when run with full data.
 
 ## Non-Blocking Limitations
 

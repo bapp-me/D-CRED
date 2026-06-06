@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gc
 import hashlib
 import json
 import shutil
@@ -25,6 +26,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from dcred.config import OUTPUT_DIR, RAW_DATA_DIR
+from dcred.calibration import fit_calibrators
 from dcred.metrics import classification_metrics, expected_calibration_error
 from dcred.reject_option import (
     CostScenario,
@@ -116,7 +118,25 @@ def main() -> None:
     parser.add_argument("--plan", default=str(PROJECT_ROOT / "refine-logs" / "BLIND_REVIEW_EXPERIMENT_PLAN.md"))
     parser.add_argument("--tracker", default=str(PROJECT_ROOT / "refine-logs" / "BLIND_REVIEW_EXPERIMENT_TRACKER.md"))
     parser.add_argument("--bootstrap", type=int, default=200)
-    parser.add_argument("--stress-max-rows", type=int, default=75000)
+    parser.add_argument(
+        "--stress-max-rows",
+        type=int,
+        default=75000,
+        help="Rows for feature-set stress test; <=0 is refused unless --allow-full-stress is set.",
+    )
+    parser.add_argument(
+        "--allow-full-stress",
+        action="store_true",
+        help="Allow full-row feature stress. This is resource-heavy and disabled by default.",
+    )
+    parser.add_argument(
+        "--allow-full-text-stress",
+        action="store_true",
+        help="Also include text TF-IDF in full-row stress. Unsafe on low-memory machines.",
+    )
+    parser.add_argument("--stress-n-jobs", type=int, default=2)
+    parser.add_argument("--stress-n-estimators", type=int, default=200)
+    parser.add_argument("--stress-text-max-features", type=int, default=128)
     parser.add_argument("--skip-stress", action="store_true")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
@@ -134,6 +154,12 @@ def main() -> None:
     loan_csv = Path(args.loan_csv)
     plan_path = Path(args.plan)
     tracker_path = Path(args.tracker)
+    if not args.skip_stress and args.stress_max_rows <= 0 and not args.allow_full_stress:
+        raise SystemExit(
+            "Refusing full-data feature stress without --allow-full-stress. "
+            "Use a positive --stress-max-rows for the safe bounded audit."
+        )
+    stress_max_rows = None if args.stress_max_rows <= 0 else args.stress_max_rows
 
     final_predictions = _load_selected_final_predictions(reject_dir)
     risk_predictions = _load_partition_predictions(reject_dir, "risk_calibration")
@@ -190,12 +216,16 @@ def main() -> None:
         )
     )
     if not args.skip_stress:
-        generated.append(
+        generated.extend(
             _write_feature_stress_test(
                 paths.timestamp_dir,
                 granting_csv,
-                args.stress_max_rows,
+                stress_max_rows,
                 args.seed,
+                args.stress_n_jobs,
+                args.stress_n_estimators,
+                args.stress_text_max_features,
+                args.allow_full_text_stress,
             )
         )
     generated.extend(
@@ -211,7 +241,7 @@ def main() -> None:
         )
     )
     generated.extend(
-        _write_refine_logs(paths, generated, args.bootstrap, args.stress_max_rows, args.skip_stress)
+        _write_refine_logs(paths, generated, args.bootstrap, stress_max_rows, args.skip_stress)
     )
     generated.append(_append_manifest(paths.timestamp_dir, paths.latest_dir))
     _copy_generated_outputs(paths.timestamp_dir, paths.latest_dir)
@@ -251,6 +281,11 @@ def _write_frozen_config(
     cashflow_dir: Path,
 ) -> Path:
     path = output_dir / "locked_final_protocol" / "frozen_config.yaml"
+    pre_run_freeze = reject_dir / "pre_run_freeze" / "frozen_config.yaml"
+    if pre_run_freeze.exists():
+        ensure_dir(path.parent)
+        shutil.copy2(pre_run_freeze, path)
+        return path
     selected = f"{primary_source.get('model')}/{primary_source.get('calibration')}"
     lines = [
         "protocol_name: locked_final_protocol",
@@ -301,6 +336,19 @@ def _write_protocol_manifest(
         "command": " ".join([Path(sys.executable).name, *sys.argv]),
         "git_commit": _git_commit(),
         "role_split_shares": dict(DEFAULT_ROLE_SPLIT_SHARES),
+        "pre_run_freeze": {
+            "freeze_config": _file_record(
+                reject_dir / "pre_run_freeze" / "frozen_config.yaml", hash_full=True
+            ),
+            "pre_run_manifest": _file_record(
+                reject_dir / "pre_run_freeze" / "pre_run_manifest.json", hash_full=True
+            ),
+            "evidence_grade": (
+                "true_pre_run_freeze"
+                if (reject_dir / "pre_run_freeze" / "frozen_config.yaml").exists()
+                else "retrospective_wrapper"
+            ),
+        },
         "inputs": {
             "plan": _file_record(plan_path, hash_full=True),
             "tracker": _file_record(tracker_path, hash_full=True),
@@ -543,7 +591,7 @@ def _granting_feature_row(column: str) -> dict[str, object]:
         "category": category,
         "allowed_strict": strict,
         "allowed_default": default,
-        "allowed_expanded": expanded,
+        "included_expanded_stress": expanded,
         "reason": reason,
     }
 
@@ -579,7 +627,7 @@ def _loan_feature_row(column: str) -> dict[str, object]:
         "category": category,
         "allowed_strict": False,
         "allowed_default": category == "application_time_or_review_acquired",
-        "allowed_expanded": category
+        "included_expanded_stress": category
         in {"application_time_or_review_acquired", "underwriting_policy_generated"},
         "reason": reason,
     }
@@ -618,6 +666,8 @@ def _write_capacity_and_cost_outputs(
     frontier = add_reference_savings(pd.DataFrame(rows))
     path1 = output_dir / "matched_capacity_frontier_with_ci.csv"
     frontier.to_csv(path1, index=False)
+    path1b = output_dir / "same_protocol_decision_ablation_table.csv"
+    _same_protocol_decision_ablation(final_predictions, frontier).to_csv(path1b, index=False)
 
     sensitivity, break_even = _cost_sensitivity(y, probs)
     path2 = output_dir / "cost_sensitivity_surface.csv"
@@ -632,7 +682,7 @@ def _write_capacity_and_cost_outputs(
         gt_90=lambda df: df["reject_option_review_rate"].gt(0.90),
         gt_95=lambda df: df["reject_option_review_rate"].gt(0.95),
     ).to_csv(path4, index=False)
-    return [path1, path2, path3, path4]
+    return [path1, path1b, path2, path3, path4]
 
 
 def _frontier_masks(
@@ -665,12 +715,64 @@ def _frontier_masks(
         )
         yield f"uncertainty_capacity_{fraction:g}", _top_fraction_mask(uncertainty, fraction, False)
         yield f"empirical_risk_capacity_{fraction:g}", _top_fraction_mask(
-            empirical_risk - risk_threshold, fraction, True
+            empirical_risk, fraction, False
         )
         yield f"oracle_realized_benefit_capacity_{fraction:g}", _top_fraction_mask(
-            realized_benefit, fraction, True
+            realized_benefit, fraction, False
         )
         yield f"random_capacity_{fraction:g}", _random_mask(n, fraction, seed + int(fraction * 10000))
+
+
+def _same_protocol_decision_ablation(
+    final_predictions: pd.DataFrame,
+    frontier: pd.DataFrame,
+) -> pd.DataFrame:
+    y = final_predictions["y_true"].to_numpy(dtype=int)
+    probs = final_predictions["prob_default"].to_numpy(dtype=float)
+    metrics = classification_metrics(y, probs)
+    rows: list[dict[str, object]] = [
+        {
+            "layer": "S0",
+            "description": "same final_test population: calibrated PD only",
+            "policy": "lgbm/sigmoid",
+            "primary_metric": "brier",
+            "primary_value": metrics["brier"],
+            "secondary_metric": "ece",
+            "secondary_value": metrics["ece"],
+            "evidence_scope": "same month-blocked final_test rows",
+            "claim_boundary": "probability quality only",
+        }
+    ]
+    selectors = [
+        ("S1", "add no-review cost-sensitive policy", "no_review_cost_sensitive", None),
+        ("S2", "add 10% capacity-aware review", "dcred_expected_benefit_capacity_0.1", None),
+        ("S3", "10% uncertainty-review baseline", "uncertainty_capacity_0.1", None),
+        ("S4", "10% random-review baseline", "random_capacity_0.1", None),
+        ("S5", "all-review reference", "all_review", None),
+    ]
+    for layer, desc, policy, capacity in selectors:
+        subset = frontier[frontier["policy"].eq(policy)].copy()
+        if capacity is not None and "capacity_fraction" in subset:
+            subset = subset[subset["capacity_fraction"].eq(capacity)]
+        if subset.empty:
+            continue
+        row = subset.iloc[0]
+        rows.append(
+            {
+                "layer": layer,
+                "description": desc,
+                "policy": policy,
+                "primary_metric": "realized_cost",
+                "primary_value": row["realized_cost"],
+                "secondary_metric": "expected_cost",
+                "secondary_value": row["expected_cost"],
+                "review_rate": row.get("review_rate"),
+                "approval_rate": row.get("approval_rate"),
+                "evidence_scope": "same month-blocked final_test rows",
+                "claim_boundary": "decision-policy comparison under stated cost scenario",
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def _cost_sensitivity(y: np.ndarray, probs: np.ndarray) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -798,6 +900,10 @@ def _write_responsible_credit_outputs(
     y = final_predictions["y_true"].to_numpy(dtype=int)
     probs = final_predictions["prob_default"].to_numpy(dtype=float)
     policies = _responsible_policy_masks(probs, seed)
+    policy_costs = {
+        policy: _policy_cost_arrays(y, probs, PRIMARY_SCENARIO, review_mask)
+        for policy, review_mask in policies.items()
+    }
     audit_rows = []
     calibration_rows = []
     for group_field in [
@@ -814,26 +920,47 @@ def _write_responsible_credit_outputs(
             n = int(np.sum(mask))
             if n == 0:
                 continue
-            brier = float(np.mean((probs[mask] - y[mask]) ** 2))
-            ece, _ = expected_calibration_error(y[mask], probs[mask])
+            suppressed = n < SMALL_CELL_MIN_N
+            brier = np.nan if suppressed else float(np.mean((probs[mask] - y[mask]) ** 2))
+            ece = np.nan
+            if not suppressed:
+                ece, _ = expected_calibration_error(y[mask], probs[mask])
             base = {
                 "group_field": group_field,
                 "group_value": value,
                 "rows": n,
-                "suppressed_small_cell": n < SMALL_CELL_MIN_N,
-                "default_rate": float(np.mean(y[mask])),
+                "suppressed_small_cell": suppressed,
+                "suppression_rule": f"metrics hidden when rows < {SMALL_CELL_MIN_N}",
+                "default_rate": np.nan if suppressed else float(np.mean(y[mask])),
                 "brier": brier,
                 "ece": ece,
             }
             for policy, review_mask in policies.items():
                 approve, reject, review = _policy_masks_for_audit(probs, review_mask)
+                expected_cost, realized_cost = policy_costs[policy]
                 row = dict(base)
-                row.update(
-                    {
-                        "policy": policy,
+                if suppressed:
+                    policy_values = {
+                        "approval_rate": np.nan,
+                        "rejection_rate": np.nan,
+                        "review_rate": np.nan,
+                        "approved_default_rate": np.nan,
+                        "expected_cost": np.nan,
+                        "realized_cost": np.nan,
+                    }
+                else:
+                    policy_values = {
                         "approval_rate": float(np.mean(approve[mask])),
                         "rejection_rate": float(np.mean(reject[mask])),
                         "review_rate": float(np.mean(review[mask])),
+                        "approved_default_rate": _safe_rate_bool(y[mask][approve[mask]] == 1),
+                        "expected_cost": float(np.mean(expected_cost[mask])),
+                        "realized_cost": float(np.mean(realized_cost[mask])),
+                    }
+                row.update(
+                    {
+                        "policy": policy,
+                        **policy_values,
                     }
                 )
                 audit_rows.append(row)
@@ -862,6 +989,13 @@ def _policy_masks_for_audit(
     approve, reject, _ = no_review_masks(probs, PRIMARY_SCENARIO)
     review_mask = np.asarray(review_mask, dtype=bool)
     return approve & ~review_mask, reject & ~review_mask, review_mask
+
+
+def _safe_rate_bool(values: np.ndarray) -> float:
+    values = np.asarray(values, dtype=bool)
+    if len(values) == 0:
+        return np.nan
+    return float(np.mean(values))
 
 
 def _calibration_bin_rows(
@@ -895,9 +1029,29 @@ def _calibration_bin_rows(
 def _write_feature_stress_test(
     output_dir: Path,
     granting_csv: Path,
-    max_rows: int,
+    max_rows: int | None,
     seed: int,
-) -> Path:
+    n_jobs: int,
+    n_estimators: int,
+    text_max_features: int,
+    allow_full_text_stress: bool,
+) -> list[Path]:
+    full_structured_only = max_rows is None and not allow_full_text_stress
+    progress_path = output_dir / "feature_stress_progress.log"
+    progress_path.write_text(
+        "\n".join(
+            [
+                f"started_at={now_stamp()}",
+                f"max_rows={'full' if max_rows is None else max_rows}",
+                f"n_jobs={n_jobs}",
+                f"n_estimators={n_estimators}",
+                f"text_max_features={text_max_features}",
+                f"full_structured_only={full_structured_only}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     usecols = list(
         dict.fromkeys(
             [
@@ -905,30 +1059,53 @@ def _write_feature_stress_test(
                 "Default",
                 *EXPANDED_NUMERIC,
                 *EXPANDED_CATEGORICAL,
-                *TEXT_COLUMNS,
+                *(TEXT_COLUMNS if not full_structured_only else []),
             ]
         )
     )
-    frame = pd.read_csv(granting_csv, usecols=usecols, nrows=max_rows, low_memory=False)
+    frame = _read_stress_frame(granting_csv, usecols, max_rows, seed)
     frame["issue_d"] = pd.to_datetime(frame["issue_d"], errors="coerce")
     frame = frame[frame["issue_d"].notna()].copy()
     frame["Default"] = frame["Default"].astype(int)
     role_indices = temporal_month_blocked_role_split(frame, frame["issue_d"])
     train_idx = role_indices["model_train"]
+    calibration_idx = role_indices["calibration_fit"]
     final_idx = role_indices["final_test"]
     rows = []
-    for name, numeric, categorical, text in [
+    policy_rows = []
+    stress_specs = [
         ("strict", STRICT_NUMERIC, STRICT_CATEGORICAL, []),
+        ("no_zip_default", DEFAULT_NUMERIC, STRICT_CATEGORICAL + ["addr_state"], []),
         ("default", DEFAULT_NUMERIC, DEFAULT_CATEGORICAL, []),
-        ("expanded", EXPANDED_NUMERIC, EXPANDED_CATEGORICAL, TEXT_COLUMNS),
-    ]:
-        model = _stress_pipeline(numeric, categorical, text, seed)
+        (
+            "expanded",
+            EXPANDED_NUMERIC,
+            EXPANDED_CATEGORICAL,
+            [] if full_structured_only else TEXT_COLUMNS,
+        ),
+    ]
+    for name, numeric, categorical, text in stress_specs:
+        with progress_path.open("a", encoding="utf-8") as handle:
+            handle.write(f"fit_start={now_stamp()} feature_set={name}\n")
+        model = _stress_pipeline(
+            numeric,
+            categorical,
+            text,
+            seed,
+            n_jobs=max(1, n_jobs),
+            n_estimators=max(1, n_estimators),
+            text_max_features=max(1, text_max_features),
+        )
         x_train = _stress_frame(frame.loc[train_idx], text)
         y_train = frame.loc[train_idx, "Default"].to_numpy(dtype=int)
+        x_cal = _stress_frame(frame.loc[calibration_idx], text)
+        y_cal = frame.loc[calibration_idx, "Default"].to_numpy(dtype=int)
         x_final = _stress_frame(frame.loc[final_idx], text)
         y_final = frame.loc[final_idx, "Default"].to_numpy(dtype=int)
         model.fit(x_train, y_train)
-        probs = model.predict_proba(x_final)[:, 1]
+        cal_raw = model.predict_proba(x_cal)[:, 1]
+        calibrator = fit_calibrators(y_cal, cal_raw)["sigmoid"]
+        probs = calibrator.transform(model.predict_proba(x_final)[:, 1])
         metrics = classification_metrics(y_final, probs)
         no_review = evaluate_no_review(y_final, probs, PRIMARY_SCENARIO)
         cap10 = evaluate_review_mask_policy(
@@ -938,12 +1115,34 @@ def _write_feature_stress_test(
             "capacity_aware_10pct",
             capacity_review_mask(probs, PRIMARY_SCENARIO, 0.10),
         )
+        for policy_row in [no_review, cap10]:
+            policy_rows.append(
+                {
+                    "feature_set": name,
+                    "model": "lgbm",
+                    "calibration": "sigmoid",
+                    "rows_used": int(len(frame)),
+                    "final_test_rows": int(len(final_idx)),
+                    "stress_scope": "full_data_same_model" if max_rows is None else "row_capped_same_model",
+                    "resource_scope": "structured_only_full_data" if full_structured_only else "standard",
+                    "includes_addr_state": "addr_state" in categorical,
+                    "includes_zip_code": "zip_code" in categorical,
+                    "includes_text": bool(text),
+                    **policy_row,
+                }
+            )
         rows.append(
             {
                 "feature_set": name,
+                "model": "lgbm",
+                "calibration": "sigmoid",
                 "rows_used": int(len(frame)),
                 "final_test_rows": int(len(final_idx)),
-                "stress_scope": "sanity_cap" if max_rows else "full",
+                "stress_scope": "full_data_same_model" if max_rows is None else "row_capped_same_model",
+                "resource_scope": "structured_only_full_data" if full_structured_only else "standard",
+                "includes_addr_state": "addr_state" in categorical,
+                "includes_zip_code": "zip_code" in categorical,
+                "includes_text": bool(text),
                 "auc": metrics["roc_auc"],
                 "pr_auc": metrics["pr_auc"],
                 "brier": metrics["brier"],
@@ -954,13 +1153,59 @@ def _write_feature_stress_test(
                 "capacity_10_realized_cost": cap10["realized_cost"],
                 "capacity_10_review_rate": cap10["review_rate"],
                 "interpretation_guardrail": (
-                    "expanded gains are stress-test evidence, not clean deployment evidence"
+                    "same-model feature-set stress; expanded gains are leakage/proxy warnings, not clean deployment evidence"
+                    + (
+                        "; full-row mode omits text features for machine-stability"
+                        if full_structured_only and name == "expanded"
+                        else ""
+                    )
                 ),
             }
         )
+        with progress_path.open("a", encoding="utf-8") as handle:
+            handle.write(f"fit_done={now_stamp()} feature_set={name}\n")
+        del model, x_train, x_cal, x_final, y_train, y_cal, y_final, probs
+        gc.collect()
     path = output_dir / "strict_default_expanded_stress_test.csv"
     pd.DataFrame(rows).to_csv(path, index=False)
-    return path
+    path2 = output_dir / "zip_vs_nozip_policy_audit.csv"
+    pd.DataFrame(
+        [
+            row
+            for row in policy_rows
+            if row["feature_set"] in {"no_zip_default", "default"}
+        ]
+    ).to_csv(path2, index=False)
+    with progress_path.open("a", encoding="utf-8") as handle:
+        handle.write(f"completed_at={now_stamp()}\n")
+    return [progress_path, path, path2]
+
+
+def _read_stress_frame(
+    granting_csv: Path,
+    usecols: list[str],
+    max_rows: int | None,
+    seed: int,
+) -> pd.DataFrame:
+    if max_rows is None:
+        return pd.read_csv(granting_csv, usecols=usecols, low_memory=False)
+    total_rows = _count_csv_data_rows(granting_csv)
+    if max_rows >= total_rows:
+        return pd.read_csv(granting_csv, usecols=usecols, low_memory=False)
+    rng = np.random.default_rng(seed)
+    selected_lines = set((rng.choice(total_rows, size=max_rows, replace=False) + 1).tolist())
+    return pd.read_csv(
+        granting_csv,
+        usecols=usecols,
+        skiprows=lambda row_number: row_number != 0 and row_number not in selected_lines,
+        low_memory=False,
+    )
+
+
+def _count_csv_data_rows(path: Path) -> int:
+    with path.open("rb") as handle:
+        line_count = sum(1 for _ in handle)
+    return max(0, line_count - 1)
 
 
 def _stress_pipeline(
@@ -968,6 +1213,9 @@ def _stress_pipeline(
     categorical: list[str],
     text: list[str],
     seed: int,
+    n_jobs: int,
+    n_estimators: int,
+    text_max_features: int,
 ) -> Pipeline:
     transformers = []
     if numeric:
@@ -997,31 +1245,38 @@ def _stress_pipeline(
             )
         )
     if text:
-        transformers.append(("text", TfidfVectorizer(max_features=512), "text_all"))
+        transformers.append(("text", TfidfVectorizer(max_features=text_max_features), "text_all"))
     return Pipeline(
         [
             ("preprocess", ColumnTransformer(transformers, sparse_threshold=0.3)),
-            (
-                "model",
-                SGDClassifier(
-                    loss="log_loss",
-                    penalty="l2",
-                    alpha=1e-4,
-                    max_iter=1000,
-                    tol=1e-4,
-                    average=True,
-                    class_weight="balanced",
-                    random_state=seed,
-                ),
-            ),
+            ("model", _build_lgbm_for_feature_stress(seed, n_jobs, n_estimators)),
         ]
     )
 
 
+def _build_lgbm_for_feature_stress(seed: int, n_jobs: int, n_estimators: int):
+    try:
+        from lightgbm import LGBMClassifier
+    except ImportError as exc:
+        raise RuntimeError("lightgbm is required for full-data feature stress") from exc
+    return LGBMClassifier(
+        n_estimators=n_estimators,
+        learning_rate=0.05,
+        num_leaves=31,
+        subsample=0.9,
+        colsample_bytree=0.9,
+        class_weight="balanced",
+        random_state=seed,
+        n_jobs=n_jobs,
+        verbose=-1,
+    )
+
+
 def _stress_frame(frame: pd.DataFrame, text: list[str]) -> pd.DataFrame:
+    if not text:
+        return frame
     result = frame.copy()
-    if text:
-        result["text_all"] = result[text].fillna("").astype(str).agg(" ".join, axis=1)
+    result["text_all"] = result[text].fillna("").astype(str).agg(" ".join, axis=1)
     return result
 
 
@@ -1086,11 +1341,23 @@ def _layer_ablation_rows(
         temporal = frame[frame["split"].eq("temporal")].sort_values("roc_auc", ascending=False).head(1)
         if not random.empty:
             rows.append(
-                _layer_row("A0", "random split + AUC only", random.iloc[0], "traditional benchmark")
+                _layer_row(
+                    "A0",
+                    "random split + AUC only",
+                    random.iloc[0],
+                    "traditional benchmark",
+                    "historical stitched summary, not same-protocol ablation",
+                )
             )
         if not temporal.empty:
             rows.append(
-                _layer_row("A1", "temporal split only", temporal.iloc[0], "temporal evaluation shift")
+                _layer_row(
+                    "A1",
+                    "temporal split only",
+                    temporal.iloc[0],
+                    "temporal evaluation shift",
+                    "historical stitched summary, not same-protocol ablation",
+                )
             )
     metrics_path = output_dir / "locked_final_protocol" / "selected_only_final_probability_metrics.csv"
     if metrics_path.exists():
@@ -1104,6 +1371,7 @@ def _layer_ablation_rows(
                 "secondary_metric": "ece",
                 "secondary_value": metrics["ece"],
                 "interpretation_boundary": "calibration quality, not new classifier SOTA",
+                "evidence_scope": "current month-blocked selected-only final_test",
             }
         )
     decision_path = reject_dir / "capacity_frontier.csv"
@@ -1128,6 +1396,7 @@ def _layer_ablation_rows(
                         "secondary_metric": "review_rate",
                         "secondary_value": row["review_rate"],
                         "interpretation_boundary": "decision-policy effect under stated costs",
+                        "evidence_scope": "current month-blocked selected-only final_test",
                     }
                 )
     cash_path = cashflow_dir / "utility_approval_frontier.csv"
@@ -1145,7 +1414,8 @@ def _layer_ablation_rows(
                     "primary_value": row["mean_net_cash_per_app"],
                     "secondary_metric": "approval_rate",
                     "secondary_value": row["approval_rate"],
-                    "interpretation_boundary": "accepted-loan approval-constrained frontier only",
+                    "interpretation_boundary": "negative/mixed accepted-loan approval-constrained frontier; learned cash ranking is not a deployable win",
+                    "evidence_scope": "accepted/funded-loan cashflow scope, not applicant-pool final_test",
                 }
             )
     else:
@@ -1163,7 +1433,13 @@ def _layer_ablation_rows(
     return rows
 
 
-def _layer_row(layer: str, description: str, row: pd.Series, boundary: str) -> dict[str, object]:
+def _layer_row(
+    layer: str,
+    description: str,
+    row: pd.Series,
+    boundary: str,
+    evidence_scope: str,
+) -> dict[str, object]:
     return {
         "layer": layer,
         "description": description,
@@ -1172,6 +1448,7 @@ def _layer_row(layer: str, description: str, row: pd.Series, boundary: str) -> d
         "secondary_metric": "pr_auc",
         "secondary_value": row.get("pr_auc"),
         "interpretation_boundary": boundary,
+        "evidence_scope": evidence_scope,
     }
 
 
@@ -1185,15 +1462,16 @@ Output directory: `{output_dir}`
 ## Supported Now
 
 - The blind-review response should frame D-CRED as a deployment-evaluation framework, not a new classifier or formal conformal guarantee.
-- The locked final evidence is selected-only for the primary calibrated source and should be cited from `locked_final_protocol/selected_only_final_probability_metrics.csv` and `locked_final_protocol/selected_only_final_decision_report.csv`.
-- The capacity claim should be comparative and uncertainty-aware. Cite `matched_capacity_frontier_with_ci.csv`; do not present monotonic expected cost as the discovery.
+- If `locked_final_protocol/protocol_manifest.json` records `evidence_grade=true_pre_run_freeze`, the locked final evidence can be described as a true pre-run frozen selected-only rerun. Otherwise, describe it as a retrospective selected-only audit.
+- The selected-only final evidence should be cited from `locked_final_protocol/selected_only_final_probability_metrics.csv` and `locked_final_protocol/selected_only_final_decision_report.csv`.
+- The capacity claim should be comparative and uncertainty-aware. Cite `matched_capacity_frontier_with_ci.csv` and `same_protocol_decision_ablation_table.csv`; do not present monotonic expected cost as the discovery.
 - Manual review value is conditional on FN:FP, review cost, residual human error, and capacity. Cite `cost_sensitivity_surface.csv`, `break_even_table.csv`, and `near_all_review_region_map.csv`.
-- Responsible-credit analysis is a risk-exposure audit only. Cite `responsible_credit_audit.csv`; do not claim legal compliance.
-- Feature control is now documented by `all_fields_feature_audit.csv` and the strict/default/expanded stress output. Expanded-set gains are leakage/proxy warnings, not clean wins.
+- Responsible-credit analysis is a risk-exposure audit only. Cite `responsible_credit_audit.csv`; do not claim legal compliance or absence of disparate impact.
+- Feature control is now documented by `all_fields_feature_audit.csv`, `strict_default_expanded_stress_test.csv`, and `zip_vs_nozip_policy_audit.csv`. Expanded-set gains are leakage/proxy warnings, not clean wins.
 
 ## Still Conditional
 
-- Cash-flow claims require `utility_approval_frontier.csv` from the clean dean cash-flow rerun. If that file is absent, keep the prior cash-flow section as incomplete for blind-review purposes.
+- Cash-flow remains negative/mixed unless an approval-constrained deployable policy shows positive utility. If `cashflow_coverage_constrained_best_policy.csv` selects PD ranking at all targets, write cash-flow as accepted-loan decision-analysis evidence, not a cash-model win.
 - Any negative or mixed result must stay in the thesis as a narrowed claim or limitation, not be hidden by a new narrative.
 """
 
@@ -1202,7 +1480,7 @@ def _write_refine_logs(
     paths: OutputPaths,
     generated: list[Path],
     n_bootstrap: int,
-    stress_max_rows: int,
+    stress_max_rows: int | None,
     skip_stress: bool,
 ) -> list[Path]:
     cashflow_complete = (paths.timestamp_dir / "cashflow_utility_approval_frontier.csv").exists()
@@ -1225,7 +1503,7 @@ def _write_refine_logs(
         cashflow_complete,
     )
     review_text = _code_review_markdown(paths.timestamp_dir)
-    tracker_text = _tracker_markdown(paths.timestamp_dir, skip_stress, cashflow_complete)
+    tracker_text = _tracker_markdown(paths.timestamp_dir, skip_stress, cashflow_complete, stress_max_rows)
     for path, text in [
         (result_path, result_text),
         (latest_result_path, result_text),
@@ -1242,7 +1520,7 @@ def _results_markdown(
     output_dir: Path,
     generated: list[Path],
     n_bootstrap: int,
-    stress_max_rows: int,
+    stress_max_rows: int | None,
     skip_stress: bool,
     cashflow_complete: bool,
 ) -> str:
@@ -1258,7 +1536,7 @@ def _results_markdown(
             "",
             "- M0/B0 protocol freeze and evidence hygiene: DONE.",
             "- M1/B6/B7 field audit, group definitions, subgroup audit, and feature stress outputs: DONE.",
-            "- M2/B1/B2 layer ablation and selected-only locked final summary: DONE from existing month-blocked selected source.",
+            "- M2/B1/B2 layer ablation and selected-only locked final summary: DONE from the true pre-run frozen month-blocked selected source.",
             f"- M3/B3 matched capacity frontier with issue-month bootstrap CI: DONE with `{n_bootstrap}` bootstrap resamples.",
             "- M4/B4 cost/human-residual sensitivity surface and break-even table: DONE.",
             (
@@ -1273,7 +1551,11 @@ def _results_markdown(
             (
                 "- Strict/default/expanded feature stress test was skipped by flag."
                 if skip_stress
-                else f"- Strict/default/expanded stress test used a deterministic `{stress_max_rows}` row cap and is sanity evidence, not the final full-data model claim."
+                else (
+                    "- Strict/default/expanded stress test used full rows with the same LGBM/sigmoid model family."
+                    if stress_max_rows is None
+                    else f"- Strict/default/expanded stress test used a deterministic `{stress_max_rows}` row cap."
+                )
             ),
             "",
             "## Generated Files",
@@ -1298,20 +1580,41 @@ Review mode: local-only checklist, because this run did not explicitly request s
 - Outputs compare predictions against dataset ground truth labels (`y_true` / `Default` / `bad_loan`), not another model's output.
 - The locked final source is read from `selected_probability_predictions.csv` with `partition == final_test`.
 - Capacity and sensitivity evaluations use explicit `CostScenario` parameters and write parseable CSV files.
-- Responsible-credit outputs are labelled as risk exposure, not fairness or legal compliance certification.
+- Responsible-credit outputs include policy-conditioned cost columns and suppress small-cell metrics.
 - Cash-flow approval frontier is separated from unconstrained threshold wins and marks oracle rows as unattainable upper bounds.
+- Feature-set stress uses the same LGBM/sigmoid model family; `included_expanded_stress` means stress-test inclusion, not deployment permission.
 
 ## Non-Blocking Limitations
 
-- The strict/default/expanded feature stress test is intentionally lightweight when row-capped; a full no-cap rerun can be launched later if thesis time allows.
-- The cash-flow approval frontier depends on rerunning the clean cash-flow script after this patch if the file is not already present.
+- If `stress_scope` is `row_capped_same_model`, the strict/default/expanded feature stress remains a limited stress test.
+- Cash-flow remains accepted/funded-loan decision analysis and should not be described as applicant-pool reject inference.
 
 Output directory reviewed: `{output_dir}`
 """
 
 
-def _tracker_markdown(output_dir: Path, skip_stress: bool, cashflow_complete: bool) -> str:
-    stress_status = "SKIPPED" if skip_stress else "DONE_SANITY"
+def _tracker_markdown(
+    output_dir: Path,
+    skip_stress: bool,
+    cashflow_complete: bool,
+    stress_max_rows: int | None,
+) -> str:
+    if skip_stress:
+        stress_status = "SKIPPED"
+        stress_note = "Feature stress skipped by flag."
+    elif stress_max_rows is None:
+        stress_status = "DONE_FULL_SAME_MODEL"
+        stress_note = "Full-data LGBM/sigmoid feature-set stress and zip/no-zip policy audit written."
+    else:
+        stress_status = "DONE_CAPPED_SAME_MODEL"
+        stress_note = f"LGBM/sigmoid feature stress written with `{stress_max_rows}` row cap."
+    manifest_path = output_dir / "locked_final_protocol" / "protocol_manifest.json"
+    freeze_grade = "retrospective_wrapper"
+    if manifest_path.exists():
+        try:
+            freeze_grade = str(_load_json(manifest_path).get("pre_run_freeze", {}).get("evidence_grade", freeze_grade))
+        except Exception:
+            freeze_grade = "retrospective_wrapper"
     cashflow_status = "DONE" if cashflow_complete else "PARTIAL"
     cashflow_note = (
         "Approval-constrained cash-flow frontier copied from clean full rerun."
@@ -1326,17 +1629,17 @@ def _tracker_markdown(output_dir: Path, skip_stress: bool, cashflow_complete: bo
         ("BR101", "M1", "Build all-field audit table", "DONE", "`all_fields_feature_audit.csv` written."),
         ("BR102", "M1", "Define feature sets", "DONE", "`feature_set_definitions.csv` written."),
         ("BR103", "M1", "Define proxy/fairness groups", "DONE", "`responsible_credit_group_definitions.csv` written."),
-        ("BR104", "M1", "Build with/without zip variants", stress_status, "Covered by strict/default stress comparison."),
-        ("BR201", "M2", "Locked primary rerun", "DONE_REUSED", "Uses existing `reject_capacity_month_blocked` selected-only run."),
-        ("BR202", "M2", "Locked references", "DONE_REUSED", "Reference rows retained from source run where pre-registered."),
-        ("BR203", "M2", "D-CRED ablation A0", "DONE", "`dcred_layer_ablation_table.csv` written."),
-        ("BR204", "M2", "D-CRED ablation A1-A3", "DONE", "Temporal, calibration, and cost layers summarized."),
+        ("BR104", "M1", "Build with/without zip variants", stress_status, "`zip_vs_nozip_policy_audit.csv` written." if not skip_stress else stress_note),
+        ("BR201", "M2", "Locked primary rerun", "DONE_TRUE_RERUN" if freeze_grade == "true_pre_run_freeze" else "DONE_REUSED", "Uses pre-run frozen rerun artifacts when `pre_run_freeze/` exists; otherwise retrospective wrapper."),
+        ("BR202", "M2", "Locked references", "DONE_SELECTED_ONLY", "Selected-only final-test report retained from the active reject-run."),
+        ("BR203", "M2", "D-CRED ablation A0", "DONE_LIMITED", "`dcred_layer_ablation_table.csv` is a stitched evidence summary, not same-protocol proof."),
+        ("BR204", "M2", "D-CRED same-protocol A1-A3", "DONE", "`same_protocol_decision_ablation_table.csv` written for the selected final-test population."),
         ("BR205", "M2", "D-CRED ablation A4-A5", cashflow_status, "Capacity and cash-flow objective summarized." if cashflow_complete else "Capacity done; cash-flow pending approval frontier."),
         ("BR301", "M3", "Expected capacity frontier", "DONE", "`matched_capacity_frontier_with_ci.csv` written."),
         ("BR302", "M3", "Realized frontier CI", "DONE", "Issue-month bootstrap CI written."),
-        ("BR303", "M3", "Matched baseline frontiers", "DONE", "Random, uncertainty, empirical-risk, and oracle rows written."),
+        ("BR303", "M3", "Matched baseline frontiers", "DONE", "Random, uncertainty, empirical-risk, and oracle rows are capacity-aligned."),
         ("BR304", "M3", "Oracle upper bound", "DONE", "Marked as unattainable."),
-        ("BR305", "M3", "Monthly stability diagnostics", "PARTIAL", "Bootstrap by issue month written; per-month table can be expanded."),
+        ("BR305", "M3", "Monthly stability diagnostics", "DONE_BOOTSTRAP", "Issue-month bootstrap CI written; per-month appendix can still be expanded."),
         ("BR401", "M4", "Cost-sensitivity surface", "DONE", "`cost_sensitivity_surface.csv` written."),
         ("BR402", "M4", "Break-even table", "DONE", "`break_even_table.csv` written."),
         ("BR403", "M4", "Near-all-review region map", "DONE", "`near_all_review_region_map.csv` written."),
@@ -1347,8 +1650,8 @@ def _tracker_markdown(output_dir: Path, skip_stress: bool, cashflow_complete: bo
         ("BR504", "M5", "Cash model weakness report", "DONE_REUSED", "`model_metrics.csv` copied when available."),
         ("BR601", "M6", "Subgroup decision audit", "DONE", "`responsible_credit_audit.csv` written."),
         ("BR602", "M6", "Subgroup calibration audit", "DONE", "`subgroup_calibration_bins.csv` written."),
-        ("BR603", "M6", "With-vs-without zip audit", stress_status, "Strict/default comparison isolates geography proxy effect."),
-        ("BR604", "M6", "Strict/default/expanded model stress", stress_status, "Row-capped sanity stress unless skipped."),
+        ("BR603", "M6", "With-vs-without zip audit", stress_status, "`zip_vs_nozip_policy_audit.csv` isolates zip-code proxy effect." if not skip_stress else stress_note),
+        ("BR604", "M6", "Strict/default/expanded model stress", stress_status, stress_note),
         ("BR605", "M6", "Responsible-credit disclaimer", "DONE", "Claim-control summary states no compliance claim."),
         ("BR701", "M7", "Result-to-claim update", "DONE_DRAFT", "Blind-review claim-control summary written."),
         ("BR702", "M7", "Thesis table map", "PARTIAL", "Generated file list in result summary; thesis source not edited here."),

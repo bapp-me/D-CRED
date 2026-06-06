@@ -1,13 +1,13 @@
 # Blind Review Experiment Results
 
-Date: 20260520-235556
+Date: 20260520-234353
 Output directory: `D:\code\diss_codex\D-CRED\outputs\blind_review_response_20260520-closure_safe`
 
 ## Execution Summary
 
 - M0/B0 protocol freeze and evidence hygiene: DONE.
 - M1/B6/B7 field audit, group definitions, subgroup audit, and feature stress outputs: DONE.
-- M2/B1/B2 layer ablation and selected-only locked final summary: DONE from the true pre-run frozen month-blocked selected source.
+- M2/B1/B2 layer ablation and selected-only locked final summary: DONE from existing month-blocked selected source.
 - M3/B3 matched capacity frontier with issue-month bootstrap CI: DONE with `200` bootstrap resamples.
 - M4/B4 cost/human-residual sensitivity surface and break-even table: DONE.
 - M5/B5 cash-flow approval frontier: DONE with the clean cash-flow rerun approval frontier.

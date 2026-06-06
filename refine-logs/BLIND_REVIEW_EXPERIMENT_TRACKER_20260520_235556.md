@@ -39,4 +39,4 @@ Output directory: `D:\code\diss_codex\D-CRED\outputs\blind_review_response_20260
 | BR701 | M7 | Result-to-claim update | DONE_DRAFT | Blind-review claim-control summary written. |
 | BR702 | M7 | Thesis table map | PARTIAL | Generated file list in result summary; thesis source not edited here. |
 | BR703 | M7 | Handoff update | DONE | Synced closure-safe response pack, claim-control, reviewer records, and tracker into `paper_writing_handoff_20260511/`. |
-| BR704 | M7 | Final claim audit | PENDING_THESIS_TEXT | Current experiment artifacts pass `review-stage/FINAL_CLAIM_GREP_AUDIT_BLIND_REVIEW_CLOSURE_20260520.md`; repeat after thesis integration. |
+| BR704 | M7 | Final claim audit | PENDING | Requires thesis text after integration. |
